@@ -1,13 +1,20 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
-int main(){
+int main(int argc, char* argv[]){
+    if(argc != 2){ // currently only 1 argument along with program name taken will update later
+        fprintf(stderr, "Bad arguments");
+        exit(2);
+    }
+
     char fileName[256];
+    snprintf(fileName, 256, "%s", argv[1]);
     FILE *file;
     
     // file name input from the user
-    fgets(fileName, 256, stdin);
-    fileName[strcspn(fileName, "\n")] = '\0';
+    // fgets(fileName, 256, stdin); // now sending file name from terminal itself no need to take input
+    // fileName[strcspn(fileName, "\n")] = '\0';
 
     file = fopen(fileName, "rb");
 

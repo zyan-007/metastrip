@@ -31,6 +31,13 @@
 *.so.*
 *.dylib
 
+# images
+*.jpg
+*.jpeg
+
+# text file
+*.txt
+
 # Executables
 *.exe
 *.out

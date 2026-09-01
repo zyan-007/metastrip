@@ -2,9 +2,12 @@
 #include <string.h>
 #include <stdlib.h>
 
+void print_usage(); // called when --help, -h or metastrip alone is written
+
 int main(int argc, char* argv[]){
-    if(argc != 2){ // currently only 1 argument along with program name taken will update later
-        fprintf(stderr, "Bad arguments");
+    if(argc == 1){
+        print_usage();
+        // fprintf(stderr, "Bad arguments");
         exit(2);
     }
 
@@ -138,3 +141,31 @@ int main(int argc, char* argv[]){
 
     return 0;
 }
+
+
+void print_usage(){
+    printf(
+        "metastrip - view and remove metadata from JPEG files.\n\n"
+        "Usage: metastrip [options] <file>\n\n"
+        "Options:\n"
+        "  -h, --help              Show this help\n"
+        "      --show <target>     Show contents of the named segment\n"
+        "      --strip <target>    Write a copy with the named segment removed\n"
+        "  -o <file>               Output filename for --strip\n"
+        "                          (default: <name>_stripped.jpg)\n\n"
+        "Targets:\n"
+        "  app0 ... app15          A specific APP segment\n"
+        "  com                     Comment segment\n"
+        "  trailing                Data after end of image\n"
+        "  exif, xmp, icc, iptc    Match by payload identifier\n"
+        "  all                     Everything above (prompts for confirmation)\n\n"
+        "With no options, prints a summary of segments found in the file.\n\n"
+        "Examples:\n"
+        "  metastrip photo.jpg\n"
+        "  metastrip --show exif photo.jpg\n"
+        "  metastrip --strip exif photo.jpg\n"
+        "  metastrip --strip all -o clean.jpg photo.jpg\n\n"
+        "The original file is never modified.\n"
+    );
+}
+

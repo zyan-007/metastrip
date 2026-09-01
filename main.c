@@ -29,7 +29,43 @@ int main(int argc, char* argv[]){
                 byte1 = getc(file);
                 byte2 = getc(file);
 
-                if(byte1 == 0xFF && byte2 == 0xDA) break; // reading till FF DA before compressed data only        
+                if(byte1 == 0xFF && byte2 == 0xDA){ // once we hit this marker we check for any trailing data
+                    // looking for trailing data
+                    fseek(file, -1, SEEK_END); // start reading from the end
+                    long long int filesize = ftell(file)+1;
+                    int flag = 0; // only works if corrupted data or markers are bad
+
+                    while(1){
+                        byte2 = getc(file); // reading bytes from the end of the file
+                        if(byte2 == 0xD9){
+                            fseek(file, -2, SEEK_CUR);
+
+                            if((byte2 = getc(file)) == 0xFF){
+                                break;
+                            }
+                            fseek(file, 1, SEEK_CUR); // in case FF not found to prevent a condition like FF D9 D9 E3
+                        }
+
+                        // guard rail
+                        if(ftell(file) <= 1){
+                            flag = 1;
+                            break;
+                        }
+
+                        fseek(file, -2, SEEK_CUR);
+                    }
+
+                    if(flag == 1){ 
+                        fprintf(stderr, "Bad file"); // only fires up when there are bad markers
+                        break;
+                    };
+
+                    if(filesize-(ftell(file)+1) != 0)
+                        printf("Trailing data: %lld bytes\n", filesize-(ftell(file)+1)); // printing the size of the trailing data
+                    else
+                        printf("Trailing data: none\n");
+                    break;
+                }    
                 if(byte1 == EOF || byte2 == EOF) break; // guardrail to prevent a bad file to break the program       
 
                 // for reading length
@@ -63,6 +99,8 @@ int main(int argc, char* argv[]){
                             printf("%c", ((read_char >= 32 && read_char <= 126) ? read_char : '.')); // non printable character are printed as .
                             payload_length--;
                         }
+
+                        printf("\n");
                     }
                     else{
                         printf("APP%d\t%d bytes: ", (byte2-0XE0), payload_length); 

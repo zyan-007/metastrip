@@ -10,6 +10,8 @@ int main(int argc, char* argv[]){
         // fprintf(stderr, "Bad arguments");
         exit(2);
     }
+    
+    // no flag's being used till now only print_usage used for normal metastrip, not for --help -h pending
 
     char fileName[256];
     snprintf(fileName, 256, "%s", argv[1]);
@@ -146,25 +148,30 @@ int main(int argc, char* argv[]){
 void print_usage(){
     printf(
         "metastrip - view and remove metadata from JPEG files.\n\n"
-        "Usage: metastrip [options] <file>\n\n"
-        "Options:\n"
-        "  -h, --help              Show this help\n"
-        "      --show <target>     Show contents of the named segment\n"
-        "      --strip <target>    Write a copy with the named segment removed\n"
-        "  -o <file>               Output filename for --strip\n"
-        "                          (default: <name>_stripped.jpg)\n\n"
+        "Usage: metastrip <command> [target] <file> [options]\n\n"
+        "Commands:\n"
+        "  show                    Display metadata\n"
+        "  strip                   Write a copy with metadata removed\n\n"
         "Targets:\n"
+        "  all                     All segments (default for show)\n"
         "  app0 ... app15          A specific APP segment\n"
         "  com                     Comment segment\n"
         "  trailing                Data after end of image\n"
-        "  exif, xmp, icc, iptc    Match by payload identifier\n"
-        "  all                     Everything above (prompts for confirmation)\n\n"
-        "With no options, prints a summary of segments found in the file.\n\n"
+        "  exif, xmp, icc, iptc    Match by payload identifier\n\n"
+        "Options:\n"
+        "  -h, --help              Show this help\n"
+        "      --hexdump           Print raw bytes as hex (show only)\n"
+        "  -o <file>               Output filename (strip only)\n"
+        "                          Default: <name>_stripped.jpg\n\n"
         "Examples:\n"
         "  metastrip photo.jpg\n"
-        "  metastrip --show exif photo.jpg\n"
-        "  metastrip --strip exif photo.jpg\n"
-        "  metastrip --strip all -o clean.jpg photo.jpg\n\n"
+        "  metastrip show exif photo.jpg\n"
+        "  metastrip show app3 photo.jpg --hexdump\n"
+        "  metastrip strip exif photo.jpg\n"
+        "  metastrip strip all photo.jpg -o clean.jpg\n\n"
+
+        "Output goes to stdout and can be redirected:\n"
+        "  metastrip show exif photo.jpg > meta.txt\n"
         "The original file is never modified.\n"
     );
 }

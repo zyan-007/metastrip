@@ -10,6 +10,62 @@ int main(int argc, char* argv[]){
         // fprintf(stderr, "Bad arguments");
         exit(2);
     }
+    else if((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0)){
+        print_usage();
+        exit(2);
+    }
+    else{
+        // checking if all the subcommands and flags are valid or not
+
+        if((strcmp("show", argv[1]) == 0 )|| (strcmp("strip", argv[1]) == 0)){ // checking if valid subcommands
+            if (argc >= 3){ // there should be at least three total args metastrip show filename.txt can add more valuesto show 
+                int argNum = 2; // starting after subcommands
+                int argTotal = argc;
+
+                if((strcmp("show", argv[1]) == 0)){ 
+                    /*
+                    we start at position 2 which is value or file name
+                    metastrip show <target> filename or metastrip show filename
+                                      ^ we are here         or           ^ here  depending on the argument passed
+                    we need to extract the value so arc-1, one being removed is the filename       
+                    [pending] --hexdump will fail this currently it is not being added       
+                    */
+                    argTotal = argc-1;
+                    char* end;
+                    int all_flag = 0; // can't use value 'all' with other values i.e metastrip show app0 
+
+                    // while (argNum < argTotal){ // fix this it values seprated by space should be comma seprated
+                    //     if(strncmp(argv[argNum], "app", 3) == 0){ // checking app0 .. app15
+                    //         long num = strtol(argv[argNum]+3, &end, 10);
+
+                    //         if (!(*end == '\0' && (num >= 0 && num <= 15) && !(strcmp(argv[argNum], "app") == 0))){ // checks if app is from 0 to 15 and if it's not just app
+                    //             printf("Invalid app target, should be app0 ... app15\n");
+                    //             exit(2);
+                    //         }
+                    //     }
+                    //     argNum++;
+                    // }
+
+                    
+
+
+                }
+                else{ // strip case
+
+                }
+            }
+            else{
+                printf("Nothing specified, nothing added.\n");
+                fprintf(stderr, "hint: Maybe you wanted to say 'metastrip show filename.jpg'\n"); // will add a different color later on like git [pending - decoration]
+                exit(2);
+            }
+        }   
+        else{
+            printf("metastrip: %s is not a metastrip command. See 'metastrip --help'.\n\n", argv[1]);
+            exit(2);           
+        }     
+    }
+
     
     // no flag's being used till now only print_usage used for normal metastrip, not for --help -h pending
 
@@ -131,6 +187,8 @@ int main(int argc, char* argv[]){
         }
         else{
             printf("!! Image might not be jpg or might be corrupted !!\n");
+            fclose(file);
+            exit(1);
         }
 
         fclose(file);
@@ -138,6 +196,7 @@ int main(int argc, char* argv[]){
     }
     else{
         printf("!! File Does not Exist !!\n");
+        exit(1);
     }
 
 

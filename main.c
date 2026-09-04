@@ -4,6 +4,8 @@
 
 void print_usage(); // called when --help, -h or metastrip alone is written
 
+int is_valid_subcommand_target(char*);
+
 int main(int argc, char* argv[]){
     if(argc == 1){
         print_usage();
@@ -21,36 +23,40 @@ int main(int argc, char* argv[]){
         // checking if all the subcommands and flags are valid or not
 
         if((strcmp("show", argv[1]) == 0 )|| (strcmp("strip", argv[1]) == 0)){ // checking if valid subcommands
-            if (argc >= 3){ // there should be at least three total args metastrip show filename.txt can add more valuesto show 
+            if (argc == 3){
+                if (is_valid_subcommand_target(argv[2]) == 1){
+                    printf("metastrip: no File Provided\n\n");
+                    exit(2);
+                }
+                else{
+                    FILE* check_file = fopen(argv[2], "r"); // if it's a file then checking if it's valid or not
+
+                    if (check_file != NULL){ // [pending check] if it's a fill name this should be equivalent to all it should print everything
+                        fclose(check_file);
+                    }
+                    else{
+                        printf("Invalid target provided, check 'metastrip --help'.\n\n");
+                        exit(2);
+                    }
+                    
+                }
+            }
+            else if (argc > 3){ // there should be at least three total args metastrip show filename.txt can add more valuesto show 
                 int argNum = 2; // starting after subcommands
                 int argTotal = argc;
 
                 if((strcmp("show", argv[1]) == 0)){ 
-                    /*
-                    we start at position 2 which is value or file name
-                    metastrip show <target> filename or metastrip show filename
-                                      ^ we are here         or           ^ here  depending on the argument passed
-                    we need to extract the value so arc-1, one being removed is the filename       
-                    [pending] --hexdump will fail this currently it is not being added       
-                    */
-                    argTotal = argc-1;
-                    char* end;
-                    int all_flag = 0; // can't use value 'all' with other values i.e metastrip show app0 
-
-                    // while (argNum < argTotal){ // fix this it values seprated by space should be comma seprated
-                    //     if(strncmp(argv[argNum], "app", 3) == 0){ // checking app0 .. app15
-                    //         long num = strtol(argv[argNum]+3, &end, 10);
-
-                    //         if (!(*end == '\0' && (num >= 0 && num <= 15) && !(strcmp(argv[argNum], "app") == 0))){ // checks if app is from 0 to 15 and if it's not just app
-                    //             printf("Invalid app target, should be app0 ... app15\n");
-                    //             exit(2);
-                    //         }
-                    //     }
-                    //     argNum++;
-                    // }
-
-                    
-
+                                     
+                    if(argc != 4){
+                        printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
+                        exit(2);
+                    }
+                    else{
+                        if(is_valid_subcommand_target(argv[2]) != 1){
+                            printf("metastrip: wrong targets provided, please check 'metastrip --help'\n\n");
+                            exit(2);
+                        }
+                    }
 
                 }
                 else{ // strip case
@@ -58,8 +64,8 @@ int main(int argc, char* argv[]){
                 }
             }
             else{
-                printf("Nothing specified, nothing added.\n");
-                fprintf(stderr, "hint: Maybe you wanted to say 'metastrip show filename.jpg'\n"); // will add a different color later on like git [pending - decoration]
+                printf("metastrip: no value provided to '%s'.\n", argv[1]);
+                // later can add hint like in git [optional pending]
                 exit(2);
             }
         }   
@@ -73,7 +79,7 @@ int main(int argc, char* argv[]){
     // no flag's being used till now only print_usage used for normal metastrip, not for --help -h pending
 
     char fileName[256];
-    snprintf(fileName, 256, "%s", argv[1]);
+    snprintf(fileName, 256, "%s", argv[2]);
     FILE *file;
     
     // file name input from the user
@@ -238,3 +244,34 @@ void print_usage(){
     );
 }
 
+
+int is_valid_subcommand_target(char* target){
+    char* end = strtok(target, ",");
+    if (end == NULL) // if empty string
+        return -1;
+
+    while(end != NULL){
+        if(strcmp(end, "app") == 0)
+            return -1;
+        else if(strncmp(end, "app", 3) == 0){ // checking if app0 to app 15
+            char* app_end;
+            long n = strtol(end+3, &app_end, 10); //converting any number that is after app to long
+            if(*app_end == '\0' && n >= 0 && n <= 15){
+                end = strtok(NULL, ",");
+                continue;
+            }
+            else 
+                return -1;
+        }
+        // below checking all valid tags
+        else if(strcmp(end, "com") == 0 || strcmp(end, "xmp") == 0 || strcmp(end, "exif") == 0 || strcmp(end, "icc") == 0 || strcmp(end, "iptc") == 0 || strcmp(end, "trailing") == 0 || strcmp(end, "all") == 0) {
+            end = strtok(NULL, ",");
+            continue;
+        }
+        else{
+            return -1;
+        }
+    }
+
+    return 1;
+}

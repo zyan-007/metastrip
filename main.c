@@ -11,8 +11,11 @@ int main(int argc, char* argv[]){
         exit(2);
     }
     else if((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0)){
-        print_usage();
-        exit(2);
+        if(argc == 2) // prevents someone from passing anything to --help, ex- metastrip --help something
+            print_usage();
+        else
+            printf("%s does not take any value. See 'metastrip --help'\n\n", argv[1]);
+        exit(0);
     }
     else{
         // checking if all the subcommands and flags are valid or not

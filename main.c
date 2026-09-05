@@ -3,10 +3,13 @@
 #include <stdlib.h>
 
 void print_usage(); // called when --help, -h or metastrip alone is written
-
 int is_valid_subcommand_target(char*);
+int is_valid_file(char* filename);
 
 int main(int argc, char* argv[]){
+    FILE *file;
+    char fileName[256]; // file name gets assigned as per the command
+
     if(argc == 1){
         print_usage();
         // fprintf(stderr, "Bad arguments");
@@ -21,7 +24,6 @@ int main(int argc, char* argv[]){
     }
     else{
         // checking if all the subcommands and flags are valid or not
-
         if((strcmp("show", argv[1]) == 0 )|| (strcmp("strip", argv[1]) == 0)){ // checking if valid subcommands
             if (argc == 3){
                 if (is_valid_subcommand_target(argv[2]) == 1){
@@ -33,6 +35,8 @@ int main(int argc, char* argv[]){
 
                     if (check_file != NULL){ // [pending check] if it's a fill name this should be equivalent to all it should print everything
                         fclose(check_file);
+                        snprintf(fileName, 256, "%s", argv[2]); // after checking it is assigned to the main fileName
+                        // printf("check");
                     }
                     else{
                         printf("Invalid target provided, check 'metastrip --help'.\n\n");
@@ -56,10 +60,15 @@ int main(int argc, char* argv[]){
                             printf("metastrip: wrong targets provided, please check 'metastrip --help'\n\n");
                             exit(2);
                         }
+                        else{
+                            if(is_valid_file(argv[3]) == 1){
+                                snprintf(fileName, 256, "%s", argv[3]); // after checking it is assigned to the main fileName
+                            }
+                        }
                     }
 
                 }
-                else{ // strip case
+                else{ // strip case [pending]
 
                 }
             }
@@ -75,12 +84,6 @@ int main(int argc, char* argv[]){
         }     
     }
 
-    
-    // no flag's being used till now only print_usage used for normal metastrip, not for --help -h pending
-
-    char fileName[256];
-    snprintf(fileName, 256, "%s", argv[2]);
-    FILE *file;
     
     // file name input from the user
     // fgets(fileName, 256, stdin); // now sending file name from terminal itself no need to take input
@@ -203,10 +206,10 @@ int main(int argc, char* argv[]){
         fclose(file);
 
     }
-    else{
-        printf("!! File Does not Exist !!\n");
-        exit(1);
-    }
+    // else{ // no need for this as checks are done during comman checks 
+    //     printf("!! File Does not Exist !!\n");
+    //     exit(1);
+    // }
 
 
     return 0;
@@ -244,8 +247,9 @@ void print_usage(){
     );
 }
 
-
 int is_valid_subcommand_target(char* target){
+
+
     char* end = strtok(target, ",");
     if (end == NULL) // if empty string
         return -1;
@@ -275,3 +279,17 @@ int is_valid_subcommand_target(char* target){
 
     return 1;
 }
+
+int is_valid_file(char* filename){
+
+    FILE* file = fopen(filename, "r");
+
+    if(file == NULL){
+        printf("!! File Does Not Exist !!\n\n");
+        exit(1);
+    }
+    fclose(file);
+
+    return 1;
+}
+

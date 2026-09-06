@@ -193,7 +193,6 @@ int main(int argc, char* argv[]){
                 else{
                     fseek(file, length-2, SEEK_CUR);
                 }
-                // printf("-- %d --\n", length-2);
             }
 
         }
@@ -206,10 +205,7 @@ int main(int argc, char* argv[]){
         fclose(file);
 
     }
-    // else{ // no need for this as checks are done during comman checks 
-    //     printf("!! File Does not Exist !!\n");
-    //     exit(1);
-    // }
+
 
 
     return 0;

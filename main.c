@@ -3,12 +3,30 @@
 #include <stdlib.h>
 
 void print_usage(); // called when --help, -h or metastrip alone is written
-int is_valid_subcommand_target(char*);
+int is_valid_subcommand_target(char*, int*);
 int is_valid_file(char* filename);
+void check_dublicates(int*); // to check if dublicates in the command exist or not
 
 int main(int argc, char* argv[]){
     FILE *file;
     char fileName[256]; // file name gets assigned as per the command
+    
+    /*
+        All valid targets sit in this
+        starting from 0 which is app0 to app19, index 20 is for com, index 21 is for trailing
+        
+        index -> 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19
+                   ^ this is for app1 if it is set to 1 that means no need to check for exif and xmp as they are included so skip 2 and 3
+    if index 1 is 0  ^ exif is checked her at index 2 
+                       ^ index 3 is check for xmp
+                         ^ index 4 is where app2 starts
+                           ^ index 5 is for icc if app2 is checked then index 5 is skipped else it is checked
+                same for iptc which lies in index index 17 and app13 lies at index 16, if index 16 is 1 then 17 is skipped else it it checked
+
+        hope you understand this one maybe in future as the project grow i change this whole indexing part
+        but right now this is the best thing i could come up with.
+    */
+    int valid_targets[22] = {0};
 
     if(argc == 1){
         print_usage();
@@ -26,12 +44,18 @@ int main(int argc, char* argv[]){
         // checking if all the subcommands and flags are valid or not
         if((strcmp("show", argv[1]) == 0 )|| (strcmp("strip", argv[1]) == 0)){ // checking if valid subcommands
             if (argc == 3){
-                if (is_valid_subcommand_target(argv[2]) == 1){
+                if (is_valid_subcommand_target(argv[2], valid_targets) == 1){
                     printf("metastrip: no File Provided\n\n");
                     exit(2);
                 }
                 else{
                     FILE* check_file = fopen(argv[2], "r"); // if it's a file then checking if it's valid or not
+                    is_valid_subcommand_target("all", valid_targets); // for this condition it is assumed that all is passed as target
+
+                    // comment this out later only for testing purpose
+                    for(int i = 0; i <= 21; ++i)
+                        printf("%d ", valid_targets[i]);
+                    printf("\n");
 
                     if (check_file != NULL){ // [pending check] if it's a fill name this should be equivalent to all it should print everything
                         fclose(check_file);
@@ -56,14 +80,21 @@ int main(int argc, char* argv[]){
                         exit(2);
                     }
                     else{
-                        if(is_valid_subcommand_target(argv[2]) != 1){
+                        if(is_valid_subcommand_target(argv[2], valid_targets) != 1){
                             printf("metastrip: wrong targets provided, please check 'metastrip --help'\n\n");
                             exit(2);
                         }
                         else{
-                            if(is_valid_file(argv[3]) == 1){
+                            // printf("check flow\n");
+
+                            if((is_valid_file(argv[3]) == 1)){
                                 snprintf(fileName, 256, "%s", argv[3]); // after checking it is assigned to the main fileName
                             }
+
+                            // comment this out later only for testing purpose
+                            for(int i = 0; i <= 21; ++i)
+                                printf("%d ", valid_targets[i]);
+                            printf("\n");
                         }
                     }
 
@@ -243,20 +274,76 @@ void print_usage(){
     );
 }
 
-int is_valid_subcommand_target(char* target){
+int is_valid_subcommand_target(char* target, int* target_list){
+    /*
+    1.this function will check if the targets are valid or not should be only these
+    app0 - app15, com, trailing , all , exif, xmp, icc, iptc
 
+    2. checks if all is not used with any other target
+        ex: metastrip show all,app0,app1 filename.jpg is invalid command
+
+    3. checks for dublicates
+        ex: metastrip show app0,app1,app0 filename.jpg is invalid command because of dublicate targets
+    */
 
     char* end = strtok(target, ",");
     if (end == NULL) // if empty string
         return -1;
 
+    int flag = 0; // check if valid all or not, all cannot be used with any other target
+    int count = 0;
+    int index = 0; // this is to send to check_dublicate and mark which index of target list to reach
+
+
     while(end != NULL){
+        count++;
+
+        if(count > 1){
+            if(flag == 1 || (strcmp(end, "all") == 0)){
+                printf("  Invalid use of all target, it can only be used alone\n");
+                printf("\ti.e metastrip <command> all <file> [options]\n\n");
+                exit(2);
+            }
+        }
+
+        if (strcmp(end, "all") == 0){
+            flag = 1;
+            for(int i = 0; i <= 21; ++i)
+                *(target_list+i) += 1;
+
+            end = strtok(NULL, ",");
+            continue;
+        }
+
         if(strcmp(end, "app") == 0)
             return -1;
         else if(strncmp(end, "app", 3) == 0){ // checking if app0 to app 15
             char* app_end;
             long n = strtol(end+3, &app_end, 10); //converting any number that is after app to long
             if(*app_end == '\0' && n >= 0 && n <= 15){
+                
+                // updating the app segment in valid target array
+                if (n <= 1){ // app0 to app1 covered here
+                    index = n;
+                    // printf("check");
+                }
+                    
+                else if (n == 2) // app2 at index 4, skipping index 2, 3 for exif and xmp
+                    index = 4;
+                    
+                else if (n >= 3 && n <= 13) // app3 to 13 
+                    index = n+3; // 3 offset is adjusted according to exif, xmp, icc saved before with their respective segments
+                
+                else if (n == 14)
+                    index = 18;
+                
+                else if (n == 15)
+                    index = 19;
+
+                *(target_list+index) += 1; // updating value by 1
+                
+                check_dublicates(target_list); //just check if dublicate app target are given
+
                 end = strtok(NULL, ",");
                 continue;
             }
@@ -264,7 +351,48 @@ int is_valid_subcommand_target(char* target){
                 return -1;
         }
         // below checking all valid tags
-        else if(strcmp(end, "com") == 0 || strcmp(end, "xmp") == 0 || strcmp(end, "exif") == 0 || strcmp(end, "icc") == 0 || strcmp(end, "iptc") == 0 || strcmp(end, "trailing") == 0 || strcmp(end, "all") == 0) {
+        else if(strcmp(end, "com") == 0) {
+            
+            *(target_list+20) += 1; // com is at index 20
+            check_dublicates(target_list); //just check if dublicatecom target are given
+
+
+            end = strtok(NULL, ",");
+            continue;
+        }
+        else if(strcmp(end, "xmp") == 0){
+            *(target_list+3) += 1; // xmp is at index 3
+            check_dublicates(target_list); //just check if dublicate xmp target are given
+
+            end = strtok(NULL, ",");
+            continue;
+
+        }
+        else if(strcmp(end, "exif") == 0){
+            *(target_list+2) += 1; // exif is at index 2
+            check_dublicates(target_list); //just check if exif xmp target are given
+
+            end = strtok(NULL, ",");
+            continue;  
+        }
+        else if(strcmp(end, "icc") == 0){
+            *(target_list+5) += 1; // com is at index 5
+            check_dublicates(target_list); //just check if dublicate icc target are given
+
+            end = strtok(NULL, ",");
+            continue;
+        }
+        else if(strcmp(end, "iptc") == 0){
+            *(target_list+17) += 1; // com is at index 17
+            check_dublicates(target_list); //just check if dublicate iptc target are given
+
+            end = strtok(NULL, ",");
+            continue;
+        }
+        else if(strcmp(end, "trailing") == 0){
+            *(target_list+21) += 1; // com is at index 21 last index
+            check_dublicates(target_list); //just check if dublicate trailing target are given
+
             end = strtok(NULL, ",");
             continue;
         }
@@ -289,3 +417,11 @@ int is_valid_file(char* filename){
     return 1;
 }
 
+void check_dublicates(int* target_list){
+    for(int i = 0; i <= 21; ++i){
+        if(*(target_list+i) > 1){
+            printf("!! Dublicate targets are not allowed !!\n\n");
+            exit(2);
+        }
+    }
+}

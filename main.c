@@ -3,13 +3,22 @@
 #include <stdlib.h>
 
 void print_usage(); // called when --help, -h or metastrip alone is written
-int is_valid_subcommand_target(char*, int*);
+int is_valid_subcommand_target(char*, int*, int*);
 int is_valid_file(char* filename);
 void check_dublicates(int*); // to check if dublicates in the command exist or not
 
 int main(int argc, char* argv[]){
     FILE *file;
     char fileName[256]; // file name gets assigned as per the command
+
+    int is_all_used = 0; // this will be used during printing so that missing commands are not printed
+    /*
+        metastrip show trialing file.jpg
+        if trailing doesnot exit then it will be printed targets not trailing data: none
+        
+        but if metastrip show all file.jpg is used
+        all available ones only should be printed nothing like app13: none should not be printed that's why is_all_used 
+    */
     
     /*
         All valid targets sit in this
@@ -44,13 +53,13 @@ int main(int argc, char* argv[]){
         // checking if all the subcommands and flags are valid or not
         if((strcmp("show", argv[1]) == 0 )|| (strcmp("strip", argv[1]) == 0)){ // checking if valid subcommands
             if (argc == 3){
-                if (is_valid_subcommand_target(argv[2], valid_targets) == 1){
+                if (is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) == 1){
                     printf("metastrip: no File Provided\n\n");
                     exit(2);
                 }
                 else{
                     FILE* check_file = fopen(argv[2], "r"); // if it's a file then checking if it's valid or not
-                    is_valid_subcommand_target("all", valid_targets); // for this condition it is assumed that all is passed as target
+                    is_valid_subcommand_target("all", valid_targets, &is_all_used); // for this condition it is assumed that all is passed as target
 
                     // comment this out later only for testing purpose
                     for(int i = 0; i <= 21; ++i)
@@ -80,7 +89,7 @@ int main(int argc, char* argv[]){
                         exit(2);
                     }
                     else{
-                        if(is_valid_subcommand_target(argv[2], valid_targets) != 1){
+                        if(is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) != 1){
                             printf("metastrip: wrong targets provided, please check 'metastrip --help'\n\n");
                             exit(2);
                         }
@@ -133,8 +142,16 @@ int main(int argc, char* argv[]){
                 byte1 = getc(file);
                 byte2 = getc(file);
 
-                if(byte1 == 0xFF && byte2 == 0xDA){ // once we hit this marker we check for any trailing data
+                if(byte1 == 0xFF && byte2 == 0xDA && valid_targets[21] == 1){ // once we hit this marker we check for any trailing data
                     // looking for trailing data
+
+                    /* once trailing data discovered it will be printed and 
+                     main array updated to -1, if not then it stays at 1, which will be later used to tell the user
+                     later if it is not present, does not print if all tag is used though
+                    */
+                    if (is_all_used == 0) //prevents printing of trailing data: none incase all is used unless explicitly mentioned
+                        valid_targets[21] = -1; 
+
                     fseek(file, -1, SEEK_END); // start reading from the end
                     long long int filesize = ftell(file)+1;
                     int flag = 0; // only works if corrupted data or markers are bad
@@ -194,31 +211,38 @@ int main(int argc, char* argv[]){
                 if((byte1 == 0xFF && (byte2 >= 0xE0 && byte2 <= 0xEF)) || (byte1 == 0xFF && byte2 == 0xFE)){ 
                     int read_char;
                     int payload_length = length-2; 
+
                     
-                    if(byte2 == 0xFE){
-                        printf("COM\t%d bytes: ", payload_length);
+                    // This has a bug com is printed as app30 even if com is not explictly written in the command it should 
+                    // ignore but isn't [important fix, major PENDING]
+                    // if(byte2 == 0xFE && valid_targets[20] == 1){
+                    //     printf("COM\t%d bytes: ", payload_length);
 
-                        while(payload_length > 0){
-                            read_char = getc(file);
-                            printf("%c", ((read_char >= 32 && read_char <= 126) ? read_char : '.')); // non printable character are printed as .
-                            payload_length--;
-                        }
+                    //     if (is_all_used == 0)
+                    //         valid_targets[20] = -1;
 
-                        printf("\n");
-                    }
-                    else{
-                        printf("APP%d\t%d bytes: ", (byte2-0XE0), payload_length); 
 
-                        int total_count = ((payload_length) < 32) ? (payload_length) : 32; // 32 bytes is a guardrail if the length of the bytes is less than 32 than printing till there
-                        int count = total_count;
-                        while(count > 0){
-                            read_char = getc(file);
-                            printf("%c", ((read_char >= 32 && read_char <= 126) ? read_char : '.')); // non printable character are printed as .
-                            count--;
-                        }
-                        fseek(file, payload_length-(total_count), SEEK_CUR);
-                        printf("\n");
-                    }
+                    //     while(payload_length > 0){
+                    //         read_char = getc(file);
+                    //         printf("%c", ((read_char >= 32 && read_char <= 126) ? read_char : '.')); // non printable character are printed as .
+                    //         payload_length--;
+                    //     }
+
+                    //     printf("\n");
+                    // }
+                    // else{
+                    //     printf("APP%d\t%d bytes: ", (byte2-0XE0), payload_length); 
+
+                    //     int total_count = ((payload_length) < 32) ? (payload_length) : 32; // 32 bytes is a guardrail if the length of the bytes is less than 32 than printing till there
+                    //     int count = total_count;
+                    //     while(count > 0){
+                    //         read_char = getc(file);
+                    //         printf("%c", ((read_char >= 32 && read_char <= 126) ? read_char : '.')); // non printable character are printed as .
+                    //         count--;
+                    //     }
+                    //     fseek(file, payload_length-(total_count), SEEK_CUR);
+                    //     printf("\n");
+                    // }
                     
                 }
                 else{
@@ -274,7 +298,7 @@ void print_usage(){
     );
 }
 
-int is_valid_subcommand_target(char* target, int* target_list){
+int is_valid_subcommand_target(char* target, int* target_list, int* is_all_available){
     /*
     1.this function will check if the targets are valid or not should be only these
     app0 - app15, com, trailing , all , exif, xmp, icc, iptc
@@ -312,6 +336,7 @@ int is_valid_subcommand_target(char* target, int* target_list){
                 *(target_list+i) += 1;
 
             end = strtok(NULL, ",");
+            *is_all_available = 1;
             continue;
         }
 

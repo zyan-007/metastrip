@@ -6,7 +6,7 @@ void print_usage(); // called when --help, -h or metastrip alone is written
 int is_valid_subcommand_target(char*, int*, int*);
 int is_valid_file(char* filename);
 void check_dublicates(int*); // to check if dublicates in the command exist or not
-void print_payload(FILE*, int, char);
+void print_payload(FILE*, int, char, int*, int, int, int);
 
 int main(int argc, char* argv[]){
     FILE *file;
@@ -209,9 +209,10 @@ int main(int argc, char* argv[]){
                 }
 
                 int read_char;
-                int payload_length = length-2; 
+                int payload_length;
                 // com
-                if((byte1 == 0xFF && byte2 == 0xFE)){
+                if((byte1 == 0xFF && byte2 == 0xFE) && valid_targets[20] == 1){
+                    payload_length = length - 2;
                     printf("COM\t%d bytes: ", payload_length);
 
                     if (is_all_used == 0)
@@ -226,26 +227,61 @@ int main(int argc, char* argv[]){
 
                     printf("\n");
                 }
-                // printing APP slots 
-                else if((byte1 == 0xFF && (byte2 >= 0xE0 && byte2 <= 0xEF))){ 
-                    
-                    // This has a bug com is printed as app30 even if com is not explictly written in the command it should 
-                    // ignore but isn't [important fix, major PENDING]
-                    
-                    if(byte2 == 0xE0 && valid_targets[0] == 1){ // app0
-                        printf("APP0\t%d bytes: ", payload_length);
 
-                        if(is_all_used == 0)
-                            valid_targets[1] = -1;
+                // else if are from app0 - app15
+                else if((byte1 == 0xFF && byte2 == 0xE0) && valid_targets[0] == 1) // app0
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 0, byte2); 
 
-                        print_payload(file, payload_length, read_char);
-                            
-                    }
+                else if((byte1 == 0xFF && byte2 == 0xE1) && valid_targets[1] == 1) // app1
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 1, byte2); 
+
+                else if((byte1 == 0xFF && byte2 == 0xE2) && valid_targets[4] == 1) // app2
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 4, byte2); 
+
+                else if((byte1 == 0xFF && byte2 == 0xE3) && valid_targets[6] == 1) // app3
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 6, byte2);
+
+                else if((byte1 == 0xFF && byte2 == 0xE4) && valid_targets[7] == 1) // app4
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 7, byte2); 
+
+                else if((byte1 == 0xFF && byte2 == 0xE5) && valid_targets[8] == 1) // app5
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 8, byte2);
+
+                else if((byte1 == 0xFF && byte2 == 0xE6) && valid_targets[9] == 1) // app6
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 9, byte2);
                     
-                }
-                else{
+                else if((byte1 == 0xFF && byte2 == 0xE7) && valid_targets[10] == 1) // app7
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 10, byte2);
+
+                else if((byte1 == 0xFF && byte2 == 0xE8) && valid_targets[11] == 1) // app8
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 11, byte2);
+
+                else if((byte1 == 0xFF && byte2 == 0xE9) && valid_targets[12] == 1) // app9
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 12, byte2);  
+
+                else if((byte1 == 0xFF && byte2 == 0xEA) && valid_targets[13] == 1) // app10
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 13, byte2);  
+
+                else if((byte1 == 0xFF && byte2 == 0xEB) && valid_targets[14] == 1) // app11
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 14, byte2);  
+
+                else if((byte1 == 0xFF && byte2 == 0xEC) && valid_targets[15] == 1) // app12
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 15, byte2); 
+
+                else if((byte1 == 0xFF && byte2 == 0xED) && valid_targets[16] == 1) // app13
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 16, byte2);
+
+                else if((byte1 == 0xFF && byte2 == 0xEE) && valid_targets[18] == 1) // app14
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 18, byte2); 
+             
+                else if((byte1 == 0xFF && byte2 == 0xEF) && valid_targets[19] == 1) // app15
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 19, byte2);  
+                
+                
+                
+                else
                     fseek(file, length-2, SEEK_CUR);
-                }
+                
             }
 
         }
@@ -450,7 +486,15 @@ void check_dublicates(int* target_list){
     }
 }
 
-void print_payload(FILE* file, int payload_length, char read_char){
+void print_payload(FILE* file, int length, char read_char, int* target_list, int is_all_used, int target, int byte2){
+    
+    int payload_length = length - 2;
+    printf("APP%d\t%d bytes: ", (byte2-0xE0), payload_length);
+
+    if(is_all_used == 0)
+        target_list[target] = -1;
+
+
     int total_count = ((payload_length) < 32) ? (payload_length) : 32; // 32 bytes is a guardrail if the length of the bytes is less than 32 than printing till there
     int count = total_count;
     while(count > 0){

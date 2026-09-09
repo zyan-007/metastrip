@@ -6,6 +6,7 @@ void print_usage(); // called when --help, -h or metastrip alone is written
 int is_valid_subcommand_target(char*, int*, int*);
 int is_valid_file(char* filename);
 void check_dublicates(int*); // to check if dublicates in the command exist or not
+void print_payload(FILE*, int, char);
 
 int main(int argc, char* argv[]){
     FILE *file;
@@ -207,42 +208,39 @@ int main(int argc, char* argv[]){
                     break;
                 }
 
-                // printing APP slots and COM
-                if((byte1 == 0xFF && (byte2 >= 0xE0 && byte2 <= 0xEF)) || (byte1 == 0xFF && byte2 == 0xFE)){ 
-                    int read_char;
-                    int payload_length = length-2; 
+                int read_char;
+                int payload_length = length-2; 
+                // com
+                if((byte1 == 0xFF && byte2 == 0xFE)){
+                    printf("COM\t%d bytes: ", payload_length);
 
+                    if (is_all_used == 0)
+                        valid_targets[20] = -1;
+
+
+                    while(payload_length > 0){
+                        read_char = getc(file);
+                        printf("%c", ((read_char >= 32 && read_char <= 126) ? read_char : '.')); // non printable character are printed as .
+                        payload_length--;
+                    }
+
+                    printf("\n");
+                }
+                // printing APP slots 
+                else if((byte1 == 0xFF && (byte2 >= 0xE0 && byte2 <= 0xEF))){ 
                     
                     // This has a bug com is printed as app30 even if com is not explictly written in the command it should 
                     // ignore but isn't [important fix, major PENDING]
-                    // if(byte2 == 0xFE && valid_targets[20] == 1){
-                    //     printf("COM\t%d bytes: ", payload_length);
+                    
+                    if(byte2 == 0xE0 && valid_targets[0] == 1){ // app0
+                        printf("APP0\t%d bytes: ", payload_length);
 
-                    //     if (is_all_used == 0)
-                    //         valid_targets[20] = -1;
+                        if(is_all_used == 0)
+                            valid_targets[1] = -1;
 
-
-                    //     while(payload_length > 0){
-                    //         read_char = getc(file);
-                    //         printf("%c", ((read_char >= 32 && read_char <= 126) ? read_char : '.')); // non printable character are printed as .
-                    //         payload_length--;
-                    //     }
-
-                    //     printf("\n");
-                    // }
-                    // else{
-                    //     printf("APP%d\t%d bytes: ", (byte2-0XE0), payload_length); 
-
-                    //     int total_count = ((payload_length) < 32) ? (payload_length) : 32; // 32 bytes is a guardrail if the length of the bytes is less than 32 than printing till there
-                    //     int count = total_count;
-                    //     while(count > 0){
-                    //         read_char = getc(file);
-                    //         printf("%c", ((read_char >= 32 && read_char <= 126) ? read_char : '.')); // non printable character are printed as .
-                    //         count--;
-                    //     }
-                    //     fseek(file, payload_length-(total_count), SEEK_CUR);
-                    //     printf("\n");
-                    // }
+                        print_payload(file, payload_length, read_char);
+                            
+                    }
                     
                 }
                 else{
@@ -443,10 +441,23 @@ int is_valid_file(char* filename){
 }
 
 void check_dublicates(int* target_list){
+
     for(int i = 0; i <= 21; ++i){
         if(*(target_list+i) > 1){
             printf("!! Dublicate targets are not allowed !!\n\n");
             exit(2);
         }
     }
+}
+
+void print_payload(FILE* file, int payload_length, char read_char){
+    int total_count = ((payload_length) < 32) ? (payload_length) : 32; // 32 bytes is a guardrail if the length of the bytes is less than 32 than printing till there
+    int count = total_count;
+    while(count > 0){
+        read_char = getc(file);
+        printf("%c", ((read_char >= 32 && read_char <= 126) ? read_char : '.')); // non printable character are printed as .
+        count--;
+    }
+    fseek(file, payload_length-(total_count), SEEK_CUR);
+    printf("\n");
 }

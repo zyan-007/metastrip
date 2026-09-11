@@ -232,8 +232,33 @@ int main(int argc, char* argv[]){
                 else if((byte1 == 0xFF && byte2 == 0xE0) && valid_targets[0] == 1) // app0
                     print_payload(file, length, read_char, valid_targets, is_all_used, 0, byte2); 
 
-                else if((byte1 == 0xFF && byte2 == 0xE1) && valid_targets[1] == 1) // app1
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 1, byte2); 
+
+                // [pending app1 only one is printing need to parse exif and xmp not printing till now]
+                else if((byte1 == 0xFF && byte2 == 0xE1) && (valid_targets[1] == 1 || valid_targets[2] == 1 || valid_targets[3] == 1)){ // app1
+                
+                    if (valid_targets[1] == 1){
+                        print_payload(file, length, read_char, valid_targets, is_all_used, 1, byte2); 
+                        
+                        if(is_all_used == 0){ // 11 sept currenlty pending only app1,exif fixed but not for icc icptc
+                            valid_targets[2] = -1;
+                            valid_targets[3] = -1;
+                        }
+                        // continue;
+                    }
+
+                    // [pending - need to complete it] + currently printing exif
+                    // if (valid_targets[2] == 1 && valid_targets[1] == 0){
+                    //     printf("payload-length: %d\n", length-2);
+                    //     long long t = length - 2;
+                    //     int c;
+                    //     while(t--){
+                    //         c = getc(file);
+                    //         putc(((c >= 32 && c <= 126) ? c : ' '), stdout);
+                    //     }
+                    // }
+                    
+                    
+                }
 
                 else if((byte1 == 0xFF && byte2 == 0xE2) && valid_targets[4] == 1) // app2
                     print_payload(file, length, read_char, valid_targets, is_all_used, 4, byte2); 
@@ -276,14 +301,109 @@ int main(int argc, char* argv[]){
              
                 else if((byte1 == 0xFF && byte2 == 0xEF) && valid_targets[19] == 1) // app15
                     print_payload(file, length, read_char, valid_targets, is_all_used, 19, byte2);  
-                
-                
-                
+                               
                 else
                     fseek(file, length-2, SEEK_CUR);
                 
             }
 
+            // printf("%d", sizeof(valid_targets)/sizeof(int));
+            if(is_all_used == 0){
+                for(int i = 0; i < (sizeof(valid_targets)/sizeof(int)); ++i){ 
+                    if(valid_targets[i] == 1){
+                        switch (i){
+                        case 0:
+                            printf("APP0 ");
+                            break;
+
+                        case 1:
+                            printf("APP1 ");
+                            break;
+
+                        case 2:
+                            printf("Exif ");
+                            break;
+
+                        case 3:
+                            printf("Xmp ");
+                            break;
+
+                        case 4:
+                            printf("APP2 ");
+                            break;
+
+                        case 5:
+                            printf("Icc ");
+                            break;
+
+                        case 6:
+                            printf("APP3 ");
+                            break;
+
+                        case 7:
+                            printf("APP4 ");
+                            break;
+
+                        case 8:
+                            printf("APP5 ");
+                            break;
+
+                        case 9:
+                            printf("APP6 ");
+                            break;
+
+                        case 10:
+                            printf("APP7 ");
+                            break;
+
+                        case 11:
+                            printf("APP8 ");
+                            break;
+
+                        case 12:
+                            printf("APP9 ");
+                            break;
+
+                        case 13:
+                            printf("APP10 ");
+                            break;
+
+                        case 14:
+                            printf("APP11 ");
+                            break;
+
+                        case 15:
+                            printf("APP12 ");
+                            break;
+
+                        case 16:
+                            printf("APP13 ");
+                            break;
+
+                        case 17:
+                            printf("Iptc ");
+                            break;
+
+                        case 18:
+                            printf("APP14 ");
+                            break;
+
+                        case 19:
+                            printf("APP15 ");
+                            break;
+
+                        case 20:
+                            printf("COM ");
+                            break;
+
+                        case 21:
+                            printf("Trailing ");
+                            break;
+                    }
+                        printf("not found\n");
+                    }
+                }
+            }
         }
         else{
             printf("!! Image might not be jpg or might be corrupted !!\n");

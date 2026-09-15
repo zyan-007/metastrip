@@ -319,8 +319,49 @@ int main(int argc, char* argv[]){
                 
                 }
 
-                else if((byte1 == 0xFF && byte2 == 0xE2) && valid_targets[4] == 1) // app2
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 4, byte2); 
+                else if((byte1 == 0xFF && byte2 == 0xE2) && (valid_targets[4] == 1 || valid_targets[5] == 1)){ // app2
+                    if (valid_targets[4] == 1){
+                        print_payload(file, length, read_char, valid_targets, is_all_used, 4, byte2);
+
+                        if(is_all_used == 0)
+                            valid_targets[5] = -1;
+                        continue;
+                    }
+
+                    if(valid_targets[5] == 1){
+                        long long t = length - 2;
+                        char iden_str[12]; // "ICC_PROFILE" (11 chars) + null terminator
+
+                        for(int i = 0; i < 12; ++i){ // to read icc identifier in payload
+                            iden_str[i] = getc(file);
+                        }
+
+                        if(strcmp(iden_str, "ICC_PROFILE") == 0){
+                            printf("ICC: Payload-legnth: %d\n", length-2);
+                            t -= 12;
+
+                            FILE* new_file = fopen("icc_save.txt", "w"); // new file to save the data
+
+                            char c;
+                            int new_line = 0;
+                            while(t--){
+                                if(new_line > 100){
+                                    new_line = 0;
+                                    putc('\n', new_file);
+                                }
+                                c = getc(file);
+                                putc(((c >= 32 && c <= 126) ? c : '.'), new_file);
+                                new_line++;
+                            }
+                            printf("Written icc (printable character only) to file 'icc_save.txt'\n");
+
+                            fclose(new_file);
+                            valid_targets[5] = -1;
+                        }
+                        else
+                            fseek(file, t-12, SEEK_CUR);
+                    }
+                }
 
                 else if((byte1 == 0xFF && byte2 == 0xE3) && valid_targets[6] == 1) // app3
                     print_payload(file, length, read_char, valid_targets, is_all_used, 6, byte2);
@@ -352,8 +393,49 @@ int main(int argc, char* argv[]){
                 else if((byte1 == 0xFF && byte2 == 0xEC) && valid_targets[15] == 1) // app12
                     print_payload(file, length, read_char, valid_targets, is_all_used, 15, byte2); 
 
-                else if((byte1 == 0xFF && byte2 == 0xED) && valid_targets[16] == 1) // app13
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 16, byte2);
+                else if((byte1 == 0xFF && byte2 == 0xED) && (valid_targets[16] == 1 || valid_targets[17] == 1)){ // app13
+                    if (valid_targets[16] == 1){
+                        print_payload(file, length, read_char, valid_targets, is_all_used, 16, byte2);
+
+                        if(is_all_used == 0)
+                            valid_targets[17] = -1;
+                        continue;
+                    }
+
+                    if(valid_targets[17] == 1){
+                        long long t = length - 2;
+                        char iden_str[14]; // "Photoshop 3.0" (13 chars) + null terminator
+
+                        for(int i = 0; i < 14; ++i){ // to read iptc identifier in payload
+                            iden_str[i] = getc(file);
+                        }
+
+                        if(strcmp(iden_str, "Photoshop 3.0") == 0){
+                            printf("IPTC: Payload-legnth: %d\n", length-2);
+                            t -= 14;
+
+                            FILE* new_file = fopen("iptc_save.txt", "w"); // new file to save the data
+
+                            char c;
+                            int new_line = 0;
+                            while(t--){
+                                if(new_line > 100){
+                                    new_line = 0;
+                                    putc('\n', new_file);
+                                }
+                                c = getc(file);
+                                putc(((c >= 32 && c <= 126) ? c : '.'), new_file);
+                                new_line++;
+                            }
+                            printf("Written iptc (printable character only) to file 'iptc_save.txt'\n");
+
+                            fclose(new_file);
+                            valid_targets[17] = -1;
+                        }
+                        else
+                            fseek(file, t-14, SEEK_CUR);
+                    }
+                }
 
                 else if((byte1 == 0xFF && byte2 == 0xEE) && valid_targets[18] == 1) // app14
                     print_payload(file, length, read_char, valid_targets, is_all_used, 18, byte2); 

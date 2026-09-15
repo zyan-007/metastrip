@@ -102,9 +102,9 @@ int main(int argc, char* argv[]){
                             }
 
                             // comment this out later only for testing purpose
-                            for(int i = 0; i <= 21; ++i)
-                                printf("%d ", valid_targets[i]);
-                            printf("\n");
+                        //     for(int i = 0; i <= 21; ++i)
+                        //         printf("%d ", valid_targets[i]);
+                        //     printf("\n");
                         }
                     }
 

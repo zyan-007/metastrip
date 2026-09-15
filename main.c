@@ -55,7 +55,7 @@ int main(int argc, char* argv[]){
         if(argc == 2) // prevents someone from passing anything to --help, ex- metastrip --help something
             print_usage();
         else
-            printf("%s does not take any value. See 'metastrip --help'\n\n", argv[1]);
+            printf("'%s' does not take any value. See 'metastrip --help'\n\n", argv[1]);
         exit(0);
     }
     else{

@@ -243,21 +243,80 @@ int main(int argc, char* argv[]){
                             valid_targets[2] = -1;
                             valid_targets[3] = -1;
                         }
-                        // continue;
+                        continue;
                     }
 
-                    // [pending - need to complete it] + currently printing exif
-                    // if (valid_targets[2] == 1 && valid_targets[1] == 0){
-                    //     printf("payload-length: %d\n", length-2);
-                    //     long long t = length - 2;
-                    //     int c;
-                    //     while(t--){
-                    //         c = getc(file);
-                    //         putc(((c >= 32 && c <= 126) ? c : ' '), stdout);
-                    //     }
-                    // }
+                    if(valid_targets[2] == 1){
+                        printf("EXIF: Payload-legnth: %d\n", length-2);
+                        long long t = length - 2;
+                        char iden_str[6]; // identifier string
+                        FILE* new_file = fopen("exif_save.txt", "w"); // new file to save the data
+                        for(int i = 0; i < 6; ++i){ // to read exif in payload
+                            iden_str[i] = getc(file);
+                        }
+
+                        // printf("%s\n", iden_str);
+
+                        if(strcmp(iden_str, "Exif") == 0){
+                            t -= 6;
+                            char c;
+                            int new_line = 0; // after printing every 100 character move to new line so you don't scroll horizontally for long
+                            while(t--){
+                                if(new_line > 100){
+                                    new_line = 0;
+                                    putc('\n', new_file);
+                                }
+                                c = getc(file);
+                                // remove this if you wish to see raw data in file. [for v.1.2] i can give --hex option to print raw bytes or print only printable char [future idea] - not currenly inlemented
+                                putc(((c >= 32 && c <= 126) ? c : '.'), new_file); // writing to file instead of printing in terminal
+                                new_line++;
+                            }
+
+                            printf("Written exif (printable character only) to file 'exif_save.txt'\n");
+
+                            fclose(new_file);
+                            valid_targets[2] = -1;
+                        }
+                        else
+                            fseek(file, t-6, SEEK_CUR);       
+                        continue;                 
+                    }                   
                     
-                    
+                    if(valid_targets[3] == 1){
+                        long long t = length - 2;
+                        char iden_str[30]; // "http://ns.adobe.com/xap/1.0/" (29 chars) + null terminator
+
+                        for(int i = 0; i < 30; ++i){ // to read xmp identifier in payload
+                            iden_str[i] = getc(file);
+                        }
+
+                        if(strcmp(iden_str, "http://ns.adobe.com/xap/1.0/") == 0){
+                            printf("XMP: Payload-legnth: %d\n", length-2);
+                            t -= 30;
+
+                            FILE* new_file = fopen("xmp_save.txt", "w"); // new file to save the data
+
+                            char c;
+                            int new_line = 0; // after printing every 100 character move to new line so you don't scroll horizontally for long
+                            while(t--){
+                                if(new_line > 100){
+                                    new_line = 0;
+                                    putc('\n', new_file);
+                                }
+                                c = getc(file);
+                                // remove this if you wish to see raw data in file. [for v.1.2] i can give --hex option to print raw bytes or print only printable char [future idea] - not currenly inlemented
+                                putc(((c >= 32 && c <= 126) ? c : '.'), new_file); // writing to file instead of printing in terminal
+                                new_line++;
+                            }
+                            printf("Written xmp (printable character only) to file 'xmp_save.txt'\n");
+
+                            fclose(new_file);
+                            valid_targets[3] = -1;
+                        }
+                        else
+                            fseek(file, t-30, SEEK_CUR);
+                    }
+                
                 }
 
                 else if((byte1 == 0xFF && byte2 == 0xE2) && valid_targets[4] == 1) // app2

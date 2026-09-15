@@ -43,6 +43,14 @@ int main(int argc, char* argv[]){
         // fprintf(stderr, "Bad arguments");
         exit(2);
     }
+    else if(((strcmp(argv[1], "-v") == 0) || (strcmp(argv[1], "--version") == 0))){
+        if(argc != 2){
+            printf("'-v' or '--version' does not take value.\n\n");
+            exit(2);
+        }
+        printf("Metastrip version 1.0.0\n");
+        exit(0);
+    }
     else if((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0)){
         if(argc == 2) // prevents someone from passing anything to --help, ex- metastrip --help something
             print_usage();

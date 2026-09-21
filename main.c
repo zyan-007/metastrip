@@ -585,7 +585,6 @@ void print_usage(){
         "  exif, xmp, icc, iptc    Match by payload identifier\n\n"
         "Options:\n"
         "  -h, --help              Show this help\n"
-        "      --hexdump           Print raw bytes as hex (show only)\n"
         "  -o <file>               Output filename (strip only)\n"
         "                          Default: <name>_stripped.jpg\n\n"
         "Examples:\n"

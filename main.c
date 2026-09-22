@@ -7,6 +7,7 @@ int is_valid_subcommand_target(char*, int*, int*);
 int is_valid_file(char* filename);
 void check_dublicates(int*); // to check if dublicates in the command exist or not
 void print_payload(FILE*, int, char, int*, int, int, int);
+void metastrip_show(FILE*, int*, int);
 
 int main(int argc, char* argv[]){
     FILE *file;
@@ -141,6 +142,17 @@ int main(int argc, char* argv[]){
     file = fopen(fileName, "rb");
 
     if(file != NULL){
+        if (strcmp(argv[1], "show") == 0){
+            metastrip_show(file, valid_targets, is_all_used);
+        }
+    }
+
+
+
+    return 0;
+}
+
+void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
         int byte1 = getc(file); // storing first byte should be FF
         int byte2 = getc(file); // storing second byte should be D8
 
@@ -561,14 +573,7 @@ int main(int argc, char* argv[]){
         }
 
         fclose(file);
-
-    }
-
-
-
-    return 0;
 }
-
 
 void print_usage(){
     printf(

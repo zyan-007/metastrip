@@ -2,16 +2,21 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define MAX_FILE_NUMBER_GENERATE 1000 // max file number guardrail used in generate_output_filename 
+
 void print_usage(); // called when --help, -h or metastrip alone is written
 int is_valid_subcommand_target(char*, int*, int*);
 int is_valid_file(char* filename);
 void check_dublicates(int*); // to check if dublicates in the command exist or not
 void print_payload(FILE*, int, char, int*, int, int, int);
 void metastrip_show(FILE*, int*, int);
+void metastrip_strip(FILE*, int*, int);
+void generate_output_filename(char*, char*, int);
 
 int main(int argc, char* argv[]){
     FILE *file;
     char fileName[256]; // file name gets assigned as per the command
+    char output_filename[500]; // used with strip where the copy is stored
 
     int is_all_used = 0; // this will be used during printing so that missing commands are not printed
     /*
@@ -71,15 +76,14 @@ int main(int argc, char* argv[]){
                     FILE* check_file = fopen(argv[2], "r"); // if it's a file then checking if it's valid or not
                     is_valid_subcommand_target("all", valid_targets, &is_all_used); // for this condition it is assumed that all is passed as target
 
-                    // comment this out later only for testing purpose
-                    for(int i = 0; i <= 21; ++i)
-                        printf("%d ", valid_targets[i]);
-                    printf("\n");
-
-                    if (check_file != NULL){ // [pending check] if it's a fill name this should be equivalent to all it should print everything
+                    if (check_file != NULL){
                         fclose(check_file);
-                        snprintf(fileName, 256, "%s", argv[2]); // after checking it is assigned to the main fileName
-                        // printf("check");
+                        snprintf(fileName, 256, "%s", argv[2]); // after checking it is assigned to the main fileName                    }
+
+                        if(strcmp("strip", argv[1]) == 0){
+                            generate_output_filename(fileName, output_filename, sizeof(output_filename));
+                            // printf("output file: %s\n", output_filename); // testing purpose
+                        }
                     }
                     else{
                         printf("Invalid target provided, check 'metastrip --help'.\n\n");
@@ -88,6 +92,8 @@ int main(int argc, char* argv[]){
                     
                 }
             }
+
+            // [pending] strip feature from below in else if only
             else if (argc > 3){ // there should be at least three total args metastrip show filename.txt can add more valuesto show 
                 int argNum = 2; // starting after subcommands
                 int argTotal = argc;
@@ -124,7 +130,6 @@ int main(int argc, char* argv[]){
             }
             else{
                 printf("metastrip: no value provided to '%s'.\n", argv[1]);
-                // later can add hint like in git [optional pending]
                 exit(2);
             }
         }   
@@ -145,14 +150,80 @@ int main(int argc, char* argv[]){
         if (strcmp(argv[1], "show") == 0){
             metastrip_show(file, valid_targets, is_all_used);
         }
+        else if(strcmp(argv[1], "strip") == 0){
+            printf("test -> strip");
+            // metastrip_strip(file, valid_targets, is_all_used);
+        }
     }
-
-
 
     return 0;
 }
 
+void metastrip_strip(FILE* file, int* valid_targets, int is_all_used){
+
+}
+
+void generate_output_filename(char* input_filename, char* final_file, int output_file_size){
+    /*
+        Assumes input filename is valid and it exists
+        this function works when no explicit output files are provided for commands like
+        metastrip strip filename.jpg <- here only input file is provided on which operations will be performed but no outputfile to save at
+        this function looks for existing file if any stripped_filename.jpg if exist then 
+        it adds number up to MAX_FILE_NUMBER_GENERATE
+        ex stripped_1_filename.jpg, stripped_50_filename.jpg keeps finding till it hits that file and updates the output_filename
+    */
+
+    char output_fileName[500] = "stripped_";
+    // incase filename comes as .\test2.jpg so that .\doen't get appended
+    if (input_filename[0] == '.' && (input_filename[1] == '/' || input_filename[1] == '\\'))  
+        strcat(output_fileName, input_filename+2);
+    else
+        strcat(output_fileName, input_filename);
+
+    FILE* file = fopen(output_fileName, "rb");
+
+    if(file != NULL){ // this means file exist we have to change the name
+        fclose(file); // closing the existing file
+        int file_number = 1; // starting from stripped_1_filename.ext
+        char str[20];
+
+        while (file_number < MAX_FILE_NUMBER_GENERATE){ // guard rail added to 500 tries if nothing fits then user is asked to delete some files (in case ran as a script)
+            snprintf(output_fileName, sizeof(output_fileName), "%s", "stripped_"); // renaming it
+            snprintf(str, sizeof(str), "%d", file_number);
+            strcat(output_fileName, str); // currently it is stripped_1 <- example
+            strcat(output_fileName, "_"); // stripped_1_
+            // stripped_1_filename.jpg
+            if (input_filename[0] == '.' && (input_filename[1] == '/' || input_filename[1] == '\\'))  
+                strcat(output_fileName, input_filename+2);
+            else
+                strcat(output_fileName, input_filename);
+
+            file = fopen(output_fileName, "rb");
+            if(file == NULL)
+                break;
+            else
+                fclose(file);
+            
+            file_number++;
+        }
+
+        if(file_number == MAX_FILE_NUMBER_GENERATE){
+            printf("Max file generation limit hit, please delete some existing file or use -o to generate name");
+            exit(1);
+        }
+    }
+    
+    snprintf(final_file, output_file_size, "%s", output_fileName); // sending the final value to main
+    
+}
+
 void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
+        /*
+            This function implements the whole show functionality, since all input checks are already done
+            in the main function, here we start reading the bytes from the images and based on requested <targets>
+            we find markers and print them
+        */
+
         int byte1 = getc(file); // storing first byte should be FF
         int byte2 = getc(file); // storing second byte should be D8
 

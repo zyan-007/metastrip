@@ -86,7 +86,8 @@ int main(int argc, char* argv[]){
                         }
                     }
                     else{
-                        printf("Invalid target provided, check 'metastrip --help'.\n\n");
+                        // printf("Invalid  provided, check 'metastrip --help'.\n\n");
+                        printf("!! File Does Not Exist !!\n\n");
                         exit(2);
                     }
                     
@@ -98,8 +99,7 @@ int main(int argc, char* argv[]){
                 int argNum = 2; // starting after subcommands
                 int argTotal = argc;
 
-                if((strcmp("show", argv[1]) == 0)){ 
-                                     
+                if((strcmp("show", argv[1]) == 0)){       
                     if(argc != 4){
                         printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
                         exit(2);
@@ -124,7 +124,7 @@ int main(int argc, char* argv[]){
                     }
 
                 }
-                else{ // strip case [pending]
+                else if((strcmp("strip", argv[1]) == 0)){
 
                 }
             }

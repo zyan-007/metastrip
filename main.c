@@ -12,6 +12,7 @@ void print_payload(FILE*, int, char, int*, int, int, int);
 void metastrip_show(FILE*, int*, int);
 void metastrip_strip(FILE*, int*, int);
 void generate_output_filename(char*, char*, int);
+int check_output_file_exist(char*);
 
 int main(int argc, char* argv[]){
     FILE *file;
@@ -57,7 +58,7 @@ int main(int argc, char* argv[]){
         printf("Metastrip version 1.0.0\n");
         exit(0);
     }
-    else if((strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "--help") == 0)){
+    else if((strcmp(argv[1], "-h") == 0)  || (strcmp(argv[1], "--help") == 0)){
         if(argc == 2) // prevents someone from passing anything to --help, ex- metastrip --help something
             print_usage();
         else
@@ -66,7 +67,7 @@ int main(int argc, char* argv[]){
     }
     else{
         // checking if all the subcommands and flags are valid or not
-        if((strcmp("show", argv[1]) == 0 )|| (strcmp("strip", argv[1]) == 0)){ // checking if valid subcommands
+        if((strcmp("show", argv[1]) == 0 ) || (strcmp("strip", argv[1]) == 0)){ // checking if valid subcommands
             if (argc == 3){
                 if (is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) == 1){
                     printf("metastrip: no File Provided\n\n");
@@ -93,7 +94,6 @@ int main(int argc, char* argv[]){
                     
                 }
             }
-
             // [pending] strip feature from below in else if only
             else if (argc > 3){ // there should be at least three total args metastrip show filename.txt can add more valuesto show 
                 int argNum = 2; // starting after subcommands
@@ -125,7 +125,83 @@ int main(int argc, char* argv[]){
 
                 }
                 else if((strcmp("strip", argv[1]) == 0)){
+                    // printf("test\n");
+                    if(argc == 4){
+                    // printf("test\n");
+                        if(is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) != 1){
+                            printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
+                            exit(2);
+                        }
+                        if(is_valid_file(argv[3]) == 1){
+                            snprintf(fileName, 256, "%s", argv[3]); // after checking it is assigned to the main fileName
+                            generate_output_filename(fileName, output_filename, sizeof(output_filename));
+                        }
+                        else{
+                            printf("!! File Does Not Exist !!\n\n");
+                            exit(2);
+                        }
+                    }
+                    else if(argc == 5){ // metastrip strip inputfile.jpg -o outputfile.jpg // no target check here as assumed all
+                        // printf("test\n");
+                        if(is_valid_file(argv[2]) == 1){
+                            snprintf(fileName, 256, "%s", argv[2]); // after checking it is assigned to the main fileName
+                        }
+                        else{
+                            printf("!! File Does Not Exist !!\n\n");
+                            exit(2);
+                        }
 
+                        if(((strcmp(argv[3], "-o") == 0) )|| (strcmp(argv[3], "--output") == 0)){
+                            if(check_output_file_exist(argv[4]) == 1){
+                                snprintf(output_filename, 500, "%s", argv[4]);
+                            }
+                            else{
+                                printf("!! The Output File Provided, Overwriting any existing file is forbidden !!");
+                                exit(1);
+                            }
+                        }
+                        else{
+                            printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
+                            exit(2);
+                        }
+                        
+                        // printf("check2\n");
+
+                        
+                    }
+                    else if(argc == 6){
+                        printf("check3\n");
+                        if(is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) != 1){
+                            printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
+                            exit(2);
+                        }
+                        if(is_valid_file(argv[3]) == 1){
+                            snprintf(fileName, 256, "%s", argv[3]); // after checking it is assigned to the main fileName
+                        }
+                        else{
+                            printf("!! File Does Not Exist !!\n\n");
+                            exit(2);
+                        }
+
+                        if(((strcmp(argv[4], "-o") == 0) )|| (strcmp(argv[4], "--output") == 0)){
+                            if(check_output_file_exist(argv[5]) == 1){
+                                snprintf(output_filename, 500, "%s", argv[5]);
+                            }
+                            else{
+                                printf("!! The Output File Provided, Overwriting any existing file is forbidden !!");
+                                exit(1);
+                            }
+                        }
+                        else{
+                            printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
+                            exit(2);
+                        }
+
+                    }
+                    else{
+                        printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
+                        exit(2); 
+                    }
                 }
             }
             else{
@@ -161,6 +237,26 @@ int main(int argc, char* argv[]){
 
 void metastrip_strip(FILE* file, int* valid_targets, int is_all_used){
 
+}
+
+int check_output_file_exist(char* filename){
+    /*
+        This function checks if the output file exist or not if it exist than as per the main rule of the program
+        nothing can be overwritten, therefore 0 is returned
+        else
+        (true) 1 is returned
+    */
+    // [pending future update 23/9/26]--> auto detecting extension currently only jpg is written later in future if more extension
+    // added then this function would need input filename as well to autodetect the extension as well
+
+    // checking if extension exist or not
+    //[pending] autodetecting if user provided extension or not it not in output file then it will add .jpg on it own 23/9/26
+    FILE *file = fopen(filename, "rb");
+    if (file != NULL){
+        fclose(file);
+        return 0; // filealready exist
+    }
+    return 1;
 }
 
 void generate_output_filename(char* input_filename, char* final_file, int output_file_size){

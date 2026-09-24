@@ -12,7 +12,7 @@ void print_payload(FILE*, int, char, int*, int, int, int);
 void metastrip_show(FILE*, int*, int);
 void metastrip_strip(FILE*, int*, int);
 void generate_output_filename(char*, char*, int);
-int check_output_file_exist(char*);
+int check_output_file_exist(char*, char*, char*);
 
 int main(int argc, char* argv[]){
     FILE *file;
@@ -94,7 +94,7 @@ int main(int argc, char* argv[]){
                     
                 }
             }
-            // [pending] strip feature from below in else if only
+
             else if (argc > 3){ // there should be at least three total args metastrip show filename.txt can add more valuesto show 
                 int argNum = 2; // starting after subcommands
                 int argTotal = argc;
@@ -152,10 +152,7 @@ int main(int argc, char* argv[]){
                         }
 
                         if(((strcmp(argv[3], "-o") == 0) )|| (strcmp(argv[3], "--output") == 0)){
-                            if(check_output_file_exist(argv[4]) == 1){
-                                snprintf(output_filename, 500, "%s", argv[4]);
-                            }
-                            else{
+                            if(check_output_file_exist(argv[4], argv[2], output_filename) != 1){
                                 printf("!! The Output File Provided, Overwriting any existing file is forbidden !!");
                                 exit(1);
                             }
@@ -170,7 +167,7 @@ int main(int argc, char* argv[]){
                         
                     }
                     else if(argc == 6){
-                        printf("check3\n");
+                        // printf("check3\n");
                         if(is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) != 1){
                             printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
                             exit(2);
@@ -184,10 +181,7 @@ int main(int argc, char* argv[]){
                         }
 
                         if(((strcmp(argv[4], "-o") == 0) )|| (strcmp(argv[4], "--output") == 0)){
-                            if(check_output_file_exist(argv[5]) == 1){
-                                snprintf(output_filename, 500, "%s", argv[5]);
-                            }
-                            else{
+                            if(check_output_file_exist(argv[5], argv[2], output_filename) != 1){
                                 printf("!! The Output File Provided, Overwriting any existing file is forbidden !!");
                                 exit(1);
                             }
@@ -219,7 +213,6 @@ int main(int argc, char* argv[]){
     // file name input from the user
     // fgets(fileName, 256, stdin); // now sending file name from terminal itself no need to take input
     // fileName[strcspn(fileName, "\n")] = '\0';
-
     file = fopen(fileName, "rb");
 
     if(file != NULL){
@@ -239,7 +232,7 @@ void metastrip_strip(FILE* file, int* valid_targets, int is_all_used){
 
 }
 
-int check_output_file_exist(char* filename){
+int check_output_file_exist(char* filename, char* input_file_name, char* final_output_file){
     /*
         This function checks if the output file exist or not if it exist than as per the main rule of the program
         nothing can be overwritten, therefore 0 is returned
@@ -249,13 +242,57 @@ int check_output_file_exist(char* filename){
     // [pending future update 23/9/26]--> auto detecting extension currently only jpg is written later in future if more extension
     // added then this function would need input filename as well to autodetect the extension as well
 
-    // checking if extension exist or not
-    //[pending] autodetecting if user provided extension or not it not in output file then it will add .jpg on it own 23/9/26
-    FILE *file = fopen(filename, "rb");
+    /*
+    two cases if wrong extension in output file provided is wrong compared to the input file
+    if user didn't provide extension to outputfile
+    if user provided right extension to the file then it's good to go
+
+    all three have to be checked before passing to fopen
+    */
+    char extension_name_input[20];
+    char* input_extension = strrchr(input_file_name, '.'); // since input file name is already checked before coming here so we know it is safe and contains an extension
+    
+    // extracting the extension name form the input file
+    int i = 0;
+    while(*input_extension != '\0'){ // there will always be a null character at the end of the filename, assumed 
+        extension_name_input[i] = *input_extension;
+        ++i;
+        if (i == 19) // guard which will never fire but still in case
+            break;
+        input_extension++;
+    }
+    extension_name_input[i] = '\0'; // making sure extension name has a null character at the end
+
+    char* output_extension = strrchr(filename, '.');
+    if(output_extension == NULL){ // there is no extension in the outputfile we have to concatinate
+        strcat(final_output_file, filename);
+        strcat(final_output_file, extension_name_input);
+    }
+    else{ // if not that means extension is provided we have to check if output extension and input extension are same or not
+        snprintf(final_output_file, 500, "%s", filename);
+        char extension_name_output[20];
+        i = 0;
+        while(*output_extension != '\0'){ // there will always be a null character at the end of the filename, assumed 
+            extension_name_output[i] = *output_extension;
+            ++i;
+            if (i == 19) // guard which will never fire but still in case
+                break;
+            output_extension++;
+        }
+        extension_name_output[i] = '\0'; // making sure extension name has a null character at the end
+
+        if(strcmp(extension_name_input, extension_name_output) != 0){ // this means user provided wrong extension name in output incompatible
+            printf("!! Extensions provided for input and output file are both incompatible, please provide same extension !!\n\n");
+            exit(2);
+        }
+    }
+
+    FILE *file = fopen(final_output_file, "rb");
     if (file != NULL){
         fclose(file);
         return 0; // filealready exist
     }
+    printf("%s\n", final_output_file); //test
     return 1;
 }
 
@@ -420,7 +457,6 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                     print_payload(file, length, read_char, valid_targets, is_all_used, 0, byte2); 
 
 
-                // [pending app1 only one is printing need to parse exif and xmp not printing till now]
                 else if((byte1 == 0xFF && byte2 == 0xE1) && (valid_targets[1] == 1 || valid_targets[2] == 1 || valid_targets[3] == 1)){ // app1
                 
                     if (valid_targets[1] == 1){

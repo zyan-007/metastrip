@@ -181,7 +181,7 @@ int main(int argc, char* argv[]){
                         }
 
                         if(((strcmp(argv[4], "-o") == 0) )|| (strcmp(argv[4], "--output") == 0)){
-                            if(check_output_file_exist(argv[5], argv[2], output_filename) != 1){
+                            if(check_output_file_exist(argv[5], argv[3], output_filename) != 1){
                                 printf("!! The Output File Provided, Overwriting any existing file is forbidden !!");
                                 exit(1);
                             }
@@ -265,7 +265,7 @@ int check_output_file_exist(char* filename, char* input_file_name, char* final_o
 
     char* output_extension = strrchr(filename, '.');
     if(output_extension == NULL){ // there is no extension in the outputfile we have to concatinate
-        strcat(final_output_file, filename);
+        snprintf(final_output_file, 500, "%s", filename);
         strcat(final_output_file, extension_name_input);
     }
     else{ // if not that means extension is provided we have to check if output extension and input extension are same or not

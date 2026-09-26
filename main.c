@@ -221,15 +221,104 @@ int main(int argc, char* argv[]){
         }
         else if(strcmp(argv[1], "strip") == 0){
             printf("test -> strip");
-            // metastrip_strip(file, valid_targets, is_all_used);
+            metastrip_strip(file, output_filename, valid_targets, is_all_used); // pending make sure to close the input and output file
         }
     }
 
     return 0;
 }
 
-void metastrip_strip(FILE* file, int* valid_targets, int is_all_used){
+void metastrip_strip(FILE* input_file, char* ouput_filename, int* valid_targets, int is_all_used){
+    /*
+        This function implements the whole strip functionality, since all input checks are already done in the main
+        function, here we start reading the bytes form the input file and start copying the bytes to the ouput file skipping
+        over the targets that the user requested <Targets> we find those markers and skip over them, also the compressed pixel
+        data is left as is and copied as is.
+    */
+    int byte1 = getc(input_file); // storing first byte should be FF
+    int byte2 = getc(input_file); // storing second byte should be D8
 
+    if (byte1 == 0xFF && byte2 == 0xD8){ //jpg images start from FF D8
+        // if input file is valid jpg then output file is written
+        FILE* output_file = fopen(input_file, "wb");
+        putc(byte1, output_file); // copying byte 1 to new file
+        putc(byte2, output_file); // copyting byte 2 to new file
+
+        while(1){
+            byte1 = getc(input_file);
+            byte2 = getc(input_file);
+
+            if(byte1 == 0xFF && byte2 == 0xDA){
+                /*
+                    once inside this condition it will copy for the compressed pixel data and the trailing data and copy it to 
+                    the output file
+                */
+                putc(byte1, output_file); // FF copied
+                putc(byte2, output_file); // DA copied
+
+                while(1){ // copying compressed pixel data
+                    byte1 = getc(input_file);
+                    putc(byte1, ouput_filename);
+                    if(byte1 == 0xFF){
+                        byte2 = getc(input_file);
+                        putc(byte2, output_file);
+                        if(byte2 == 0xD9)
+                            break; 
+                    }
+                    if(byte1 == EOF || byte2 == EOF) break; //guardrail to prevend a bad file to break the program
+                }
+
+                // incomplete  code work it  later
+                // fseek(input_file, -1, SEEK_END);
+                //     long long int filesize = ftell(file)+1;
+                //     int flag = 0; // only works if corrupted data or markers are bad
+
+                //     while(1){
+                //         byte2 = getc(file); // reading bytes from the end of the file
+                //         if(byte2 == 0xD9){
+                //             fseek(file, -2, SEEK_CUR);
+
+                //             if((byte2 = getc(file)) == 0xFF){
+                //                 break;
+                //             }
+                //             fseek(file, 1, SEEK_CUR); // in case FF not found to prevent a condition like FF D9 D9 E3
+                //         }
+
+                //         // guard rail
+                //         if(ftell(file) <= 1){
+                //             flag = 1;
+                //             break;
+                //         }
+
+                //         fseek(file, -2, SEEK_CUR);
+                //     }
+
+                //     if(flag == 1){ 
+                //         fprintf(stderr, "Bad file"); // only fires up when there are bad markers
+                //         break;
+                //     };
+
+                //     if(filesize-(ftell(file)+1) != 0)
+                //         printf("Trailing data: %lld bytes\n", filesize-(ftell(file)+1)); // printing the size of the trailing data
+                //     else
+                //         printf("Trailing data: none\n");
+                //     break;
+
+                break; // by the end of this there will be nothing to copy
+            }
+            if(byte1 == EOF || byte2 == EOF) break; // guardrail to prevent a bad file to break the program       
+
+
+        }
+        fclose(output_file);
+    }
+    else{
+        printf("!! Image might not be jpg or might be corrupted !!\n");
+        fclose(input_file);
+        exit(1);
+    }
+
+    fclose(input_file);
 }
 
 int check_output_file_exist(char* filename, char* input_file_name, char* final_output_file){

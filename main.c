@@ -143,6 +143,8 @@ int main(int argc, char* argv[]){
                     }
                     else if(argc == 5){ // metastrip strip inputfile.jpg -o outputfile.jpg // no target check here as assumed all
                         // printf("test\n");
+                        is_valid_subcommand_target("all", valid_targets, &is_all_used); // for this condition it is assumed that all is passed as target
+
                         if(is_valid_file(argv[2]) == 1){
                             snprintf(fileName, 256, "%s", argv[2]); // after checking it is assigned to the main fileName
                         }
@@ -261,6 +263,11 @@ void metastrip_strip(FILE* input_file, char* output_filename, int* valid_targets
     int byte1 = getc(input_file); // storing first byte should be FF
     int byte2 = getc(input_file); // storing second byte should be D8
 
+    printf("\n");
+    for(int i = 0; i <= 21; ++i)
+        printf("%d ", valid_targets[i]);
+    printf("\n");
+
     if (byte1 == 0xFF && byte2 == 0xD8){ //jpg images start from FF D8
         // if input file is valid jpg then output file is written
         FILE* output_file = fopen(output_filename, "wb");
@@ -268,56 +275,8 @@ void metastrip_strip(FILE* input_file, char* output_filename, int* valid_targets
         putc(byte2, output_file); // copyting byte 2 to new file
 
         while(1){
-            byte1 = getc(input_file);
-            byte2 = getc(input_file);
-
-            if(byte1 == EOF || byte2 == EOF) break; // guard rail incase of broken file
-
-            if (byte1 == 0xFF && byte2 == 0xDA){ // start of scan whole compressed pixel data is copied as it is
-                putc(byte1, output_file); // copying FF 
-                putc(byte2, output_file); // copying D8
- 
-                while(1){
-                    byte1 = getc(input_file);
-                    byte2 = getc(input_file);
-                    putc(byte1, output_file);
-                    putc(byte2, output_file);
-
-                    if(byte1 == EOF || byte2 == EOF) break; // guardrail incase of broken file
-
-                    if(byte1 == 0xFF && byte2 == 0xD9){ // end of image
-                        break;
-                    }
-                }
-
-                int flag = 0;
-                if(valid_targets[21] == 0){                
-                    while(1){
-                        byte1 = getc(input_file); // should start after d9
-                        if(byte1 == EOF) break;
-
-                        putc(byte1, output_file);
-
-                    }
-                }
-                else{
-                    while(1){
-                        byte1 = getc(input_file); // should start after d9
-                        if(byte1 == EOF) break;
-                        
-                        // it is a check to see if trailing data exist or not
-                        flag = (flag == 0) ? 1 : 0; // as soon as one character of trailing data is found set it to 1 
-                        
-                        break;
-
-                    }
-                    if (flag == 1)
-                        printf("Trailing data stripped\n");
-                    else
-                        printf("Trilaing data does not exist\n");
-                }
-            }
-
+            // reimplement stripping feature again, this time one byte at a time.
+            
 
         }
         

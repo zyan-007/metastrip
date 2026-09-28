@@ -230,6 +230,29 @@ int main(int argc, char* argv[]){
 
 void metastrip_strip(FILE* input_file, char* output_filename, int* valid_targets, int is_all_used){
     /*
+        JPEG marker / target reference (keep copying here to save myself from asking again):
+
+        Top-level structure markers (0xFF + second byte):
+          SOI          FF D8   Start of Image - first 2 bytes of every JPEG
+          APP0-APP15   FF E0-FF EF   Application segments, 16 slots
+          COM          FF FE   Comment
+          SOS          FF DA   Start of Scan - compressed pixel data begins right after
+          EOI          FF D9   End of Image - true end of the compressed data
+
+        Segment layout (everything except SOI/EOI):
+          marker (2 bytes) -> length (2 bytes, includes itself) -> payload (length - 2 bytes)
+
+        Identifier strings (what's actually at the start of the payload, used to tell
+        apart things sharing a marker number):
+          exif   APP1    "Exif\0\0"                          (6 bytes)
+          xmp    APP1    "http://ns.adobe.com/xap/1.0/\0"     (30 bytes)
+          icc    APP2    "ICC_PROFILE\0"                      (12 bytes)
+          iptc   APP13   "Photoshop 3.0\0"                    (14 bytes)
+
+        Trailing data: anything after the true EOI (FF D9) - found by searching
+        backward from the real end of the file, not forward.
+    */
+    /*
         This function implements the whole strip functionality, since all input checks are already done in the main
         function, here we start reading the bytes form the input file and start copying the bytes to the ouput file skipping
         over the targets that the user requested <Targets> we find those markers and skip over them, also the compressed pixel
@@ -375,6 +398,29 @@ void generate_output_filename(char* input_filename, char* final_file, int output
 }
 
 void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
+        /*
+            JPEG marker / target reference (keep copying here to save myself from asking again):
+
+            Top-level structure markers (0xFF + second byte):
+              SOI          FF D8   Start of Image - first 2 bytes of every JPEG
+              APP0-APP15   FF E0-FF EF   Application segments, 16 slots
+              COM          FF FE   Comment
+              SOS          FF DA   Start of Scan - compressed pixel data begins right after
+              EOI          FF D9   End of Image - true end of the compressed data
+
+            Segment layout (everything except SOI/EOI):
+              marker (2 bytes) -> length (2 bytes, includes itself) -> payload (length - 2 bytes)
+
+            Identifier strings (what's actually at the start of the payload, used to tell
+            apart things sharing a marker number):
+              exif   APP1    "Exif\0\0"                          (6 bytes)
+              xmp    APP1    "http://ns.adobe.com/xap/1.0/\0"     (30 bytes)
+              icc    APP2    "ICC_PROFILE\0"                      (12 bytes)
+              iptc   APP13   "Photoshop 3.0\0"                    (14 bytes)
+
+            Trailing data: anything after the true EOI (FF D9) - found by searching
+            backward from the real end of the file, not forward.
+        */
         /*
             This function implements the whole show functionality, since all input checks are already done
             in the main function, here we start reading the bytes from the images and based on requested <targets>

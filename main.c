@@ -40,7 +40,7 @@ int main(int argc, char* argv[]){
                            ^ index 5 is for icc if app2 is checked then index 5 is skipped else it is checked
                 same for iptc which lies in index index 17 and app13 lies at index 16, if index 16 is 1 then 17 is skipped else it it checked
 
-        hope you understand this one maybe in future as the project grow i change this whole indexing part
+        hope you understand this one maybe in future as the project grow i will change this whole indexing part
         but right now this is the best thing i could come up with.
     */
     int valid_targets[22] = {0};
@@ -267,6 +267,59 @@ void metastrip_strip(FILE* input_file, char* output_filename, int* valid_targets
         putc(byte1, output_file); // copying byte 1 to new file
         putc(byte2, output_file); // copyting byte 2 to new file
 
+        while(1){
+            byte1 = getc(input_file);
+            byte2 = getc(input_file);
+
+            if(byte1 == EOF || byte2 == EOF) break; // guard rail incase of broken file
+
+            if (byte1 == 0xFF && byte2 == 0xDA){ // start of scan whole compressed pixel data is copied as it is
+                putc(byte1, output_file); // copying FF 
+                putc(byte2, output_file); // copying D8
+ 
+                while(1){
+                    byte1 = getc(input_file);
+                    byte2 = getc(input_file);
+                    putc(byte1, output_file);
+                    putc(byte2, output_file);
+
+                    if(byte1 == EOF || byte2 == EOF) break; // guardrail incase of broken file
+
+                    if(byte1 == 0xFF && byte2 == 0xD9){ // end of image
+                        break;
+                    }
+                }
+
+                int flag = 0;
+                if(valid_targets[21] == 0){                
+                    while(1){
+                        byte1 = getc(input_file); // should start after d9
+                        if(byte1 == EOF) break;
+
+                        putc(byte1, output_file);
+
+                    }
+                }
+                else{
+                    while(1){
+                        byte1 = getc(input_file); // should start after d9
+                        if(byte1 == EOF) break;
+                        
+                        // it is a check to see if trailing data exist or not
+                        flag = (flag == 0) ? 1 : 0; // as soon as one character of trailing data is found set it to 1 
+                        
+                        break;
+
+                    }
+                    if (flag == 1)
+                        printf("Trailing data stripped\n");
+                    else
+                        printf("Trilaing data does not exist\n");
+                }
+            }
+
+
+        }
         
         fclose(output_file);
     }
@@ -532,7 +585,7 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                     if (valid_targets[1] == 1){
                         print_payload(file, length, read_char, valid_targets, is_all_used, 1, byte2); 
                         
-                        if(is_all_used == 0){ // 11 sept currenlty pending only app1,exif fixed but not for icc icptc
+                        if(is_all_used == 0){ 
                             valid_targets[2] = -1;
                             valid_targets[3] = -1;
                         }

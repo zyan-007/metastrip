@@ -345,42 +345,42 @@ void metastrip_strip(FILE* input_file, char* output_filename, int* valid_targets
                     }
                 }
                 
-                // else if(byte2 == 0xFE){ // com segment
-                //     // for reading length
-                //     high = getc(input_file); 
-                //     low = getc(input_file);
+                else if(byte2 == 0xFE){ // com segment
+                    // for reading length
+                    high = getc(input_file); 
+                    low = getc(input_file);
 
-                //     /*
-                //     let's say length is 16 in decimal
-                //     high will be 0x00
-                //     low will be 0x10
-                //     two bytes need to be combined to be passed to fseek
-                //     so combine these two bytes into one (high << 8) | low is done
-                //     */
-                //     length = (high << 8) | low;
-                //     if (length < 2){
-                //         fprintf(stderr, "Segment length is incorrect\n");
-                //         break;
-                //     } 
-                //     payload_length = length - 2;
+                    /*
+                    let's say length is 16 in decimal
+                    high will be 0x00
+                    low will be 0x10
+                    two bytes need to be combined to be passed to fseek
+                    so combine these two bytes into one (high << 8) | low is done
+                    */
+                    length = (high << 8) | low;
+                    if (length < 2){
+                        fprintf(stderr, "Segment length is incorrect\n");
+                        break;
+                    } 
+                    payload_length = length - 2;
 
-                //     if (valid_targets[20] == 1){ // skip over since user mentioned this
-                //         valid_targets[20] = -1;
-                //         fseek(input_file, length, SEEK_CUR);
-                //     }
-                //     else{
-                //         putc(byte1, output_file); // FF marker
-                //         putc(byte2, output_file); // other marker
+                    if (valid_targets[20] == 1){ // skip over since user mentioned this
+                        valid_targets[20] = -1;
+                        fseek(input_file, payload_length, SEEK_CUR);
+                    }
+                    else{
+                        putc(byte1, output_file); // FF marker
+                        putc(byte2, output_file); // other marker
 
-                //         putc(high, output_file);
-                //         putc(low, output_file); 
+                        putc(high, output_file);
+                        putc(low, output_file); 
 
-                //         for(int i = 0; i < payload_length; ++i){
-                //             byte1 = getc(input_file);
-                //             putc(byte1, output_file); // copying the whole payload segment
-                //         }
-                    // }
-                // }
+                        for(int i = 0; i < payload_length; ++i){
+                            byte1 = getc(input_file);
+                            putc(byte1, output_file); // copying the whole payload segment
+                        }
+                    }
+                }
                 else{
                     putc(byte1, output_file);
                     putc(byte2, output_file);
@@ -391,6 +391,7 @@ void metastrip_strip(FILE* input_file, char* output_filename, int* valid_targets
             }
 
         }
+
         
         fclose(output_file);
     }

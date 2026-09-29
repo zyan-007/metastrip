@@ -222,7 +222,7 @@ int main(int argc, char* argv[]){
             metastrip_show(file, valid_targets, is_all_used);
         }
         else if(strcmp(argv[1], "strip") == 0){
-            printf("test -> strip");
+            // printf("test -> strip");
             metastrip_strip(file, output_filename, valid_targets, is_all_used); // pending make sure to close the input and output file
         }
     }
@@ -264,10 +264,10 @@ void metastrip_strip(FILE* input_file, char* output_filename, int* valid_targets
     int byte1 = getc(input_file); // storing first byte should be FF
     int byte2 = getc(input_file); // storing second byte should be D8
 
-    printf("\n");
-    for(int i = 0; i <= 21; ++i)
-        printf("%d ", valid_targets[i]);
-    printf("\n");
+    // printf("\n");
+    // for(int i = 0; i <= 21; ++i)
+    //     printf("%d ", valid_targets[i]);
+    // printf("\n");
 
     if (byte1 == 0xFF && byte2 == 0xD8){ //jpg images start from FF D8
         // if input file is valid jpg then output file is written
@@ -381,6 +381,8 @@ void metastrip_strip(FILE* input_file, char* output_filename, int* valid_targets
                         }
                     }
                 }
+                
+                
                 else{
                     putc(byte1, output_file);
                     putc(byte2, output_file);
@@ -392,6 +394,27 @@ void metastrip_strip(FILE* input_file, char* output_filename, int* valid_targets
 
         }
 
+        char* target_name[22] = { // all names for segment according to how they are stored in valid targets
+        "app0", "app1", "exif", "xmp", "app2", "icc", "app3", "app4", "app5", "app6",
+        "app7", "app8", "app9", "app10", "app11", "app12", "app13", "iptc", "app14", "app15", "com", "trailing"
+        };
+
+        // printing targets stipped
+        for(int i = 0; i < 22; ++i){
+            if(valid_targets[i] == -1){
+                printf("Stripped %s\n", target_name[i]);
+            }
+            if(i == 1 && (valid_targets[i] == -1 || valid_targets[i] == 1)){ // skip exif and xmp
+                i+=2;
+            }
+            else if(i == 4 && (valid_targets[i] == -1 || valid_targets[i] == 1)){ //skip icc
+                i++;
+            }
+            else if(i == 16 && (valid_targets[i] == -1 || valid_targets[i] == 1)){ // skip iptc
+                i++;
+            }
+        }
+        printf("\n");
         
         fclose(output_file);
     }

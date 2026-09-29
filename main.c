@@ -143,6 +143,8 @@ int main(int argc, char* argv[]){
                     }
                     else if(argc == 5){ // metastrip strip inputfile.jpg -o outputfile.jpg // no target check here as assumed all
                         // printf("test\n");
+                        is_valid_subcommand_target("all", valid_targets, &is_all_used); // for this condition it is assumed that all is passed as target
+
                         if(is_valid_file(argv[2]) == 1){
                             snprintf(fileName, 256, "%s", argv[2]); // after checking it is assigned to the main fileName
                         }
@@ -229,6 +231,7 @@ int main(int argc, char* argv[]){
 }
 
 void metastrip_strip(FILE* input_file, char* output_filename, int* valid_targets, int is_all_used){
+    
     /*
         JPEG marker / target reference (keep copying here to save myself from asking again):
 
@@ -261,63 +264,131 @@ void metastrip_strip(FILE* input_file, char* output_filename, int* valid_targets
     int byte1 = getc(input_file); // storing first byte should be FF
     int byte2 = getc(input_file); // storing second byte should be D8
 
+    printf("\n");
+    for(int i = 0; i <= 21; ++i)
+        printf("%d ", valid_targets[i]);
+    printf("\n");
+
     if (byte1 == 0xFF && byte2 == 0xD8){ //jpg images start from FF D8
         // if input file is valid jpg then output file is written
         FILE* output_file = fopen(output_filename, "wb");
         putc(byte1, output_file); // copying byte 1 to new file
         putc(byte2, output_file); // copyting byte 2 to new file
 
+
+        int high;
+        int low;
+        unsigned int length;
+        int payload_length;
+        
         while(1){
+            // reimplement stripping feature again, this time one byte at a time.
             byte1 = getc(input_file);
-            byte2 = getc(input_file);
+            if (byte1 == EOF) break;
 
-            if(byte1 == EOF || byte2 == EOF) break; // guard rail incase of broken file
+            if(byte1 == 0xFF){
+                byte2 = getc(input_file);
+                if (byte2 == EOF) break; // guard rail just incase
 
-            if (byte1 == 0xFF && byte2 == 0xDA){ // start of scan whole compressed pixel data is copied as it is
-                putc(byte1, output_file); // copying FF 
-                putc(byte2, output_file); // copying D8
- 
-                while(1){
-                    byte1 = getc(input_file);
-                    byte2 = getc(input_file);
+                if (byte2 >= 0xE0 && byte2 <= 0xEF){ // app segments
+                    unsigned char app_markers[16] = {
+                        0XE0, 0XE1, 0XE2, 0XE3, 0XE4, 0XE5, 0XE6, 0XE7, 0XE8, 0XE9, 0XEA, 0XEB, 0XEC, 0XED, 0XEE, 0XEF
+                    };
+                    int app_marker_valid_target_pos[16] = {
+                        0,       1,  4,     6,    7,    8,    9,   10,    11,   12,   13,  14,   15,   16,   18,   19
+                    };
+                    /*
+                        above two arrays act as a map (dictionary in python terms) where each app segment marker points to 
+                        the position on valid target to check if the user asked for that or not.saves from writing long
+                        list of if else which would have been tedious.
+                    */
+                    int i;
+                    for(i = 0; i < 16; ++i){
+                        if(byte2 == app_markers[i]){
+                            break; // this will give us i
+                        }
+                    }
+                                        // for reading length
+                    high = getc(input_file); 
+                    low = getc(input_file);
+
+                    /*
+                    let's say length is 16 in decimal
+                    high will be 0x00
+                    low will be 0x10
+                    two bytes need to be combined to be passed to fseek
+                    so combine these two bytes into one (high << 8) | low is done
+                    */
+                    length = (high << 8) | low;
+                    if (length < 2){
+                        fprintf(stderr, "Segment length is incorrect\n");
+                        break;
+                    } 
+                    payload_length = length - 2;
+
+
+                    if (valid_targets[app_marker_valid_target_pos[i]] == 1 || valid_targets[app_marker_valid_target_pos[i]] == -1){
+                        valid_targets[app_marker_valid_target_pos[i]] = -1;
+                        fseek(input_file, payload_length, SEEK_CUR);
+                    }
+                    else{
+                        putc(byte1, output_file); // FF marker
+                        putc(byte2, output_file); // other marker
+
+                        putc(high, output_file);
+                        putc(low, output_file); 
+
+                        for(int i = 0; i < payload_length; ++i){
+                            byte1 = getc(input_file);
+                            putc(byte1, output_file); // copying the whole payload segment
+                        }
+                    }
+                }
+                
+                // else if(byte2 == 0xFE){ // com segment
+                //     // for reading length
+                //     high = getc(input_file); 
+                //     low = getc(input_file);
+
+                //     /*
+                //     let's say length is 16 in decimal
+                //     high will be 0x00
+                //     low will be 0x10
+                //     two bytes need to be combined to be passed to fseek
+                //     so combine these two bytes into one (high << 8) | low is done
+                //     */
+                //     length = (high << 8) | low;
+                //     if (length < 2){
+                //         fprintf(stderr, "Segment length is incorrect\n");
+                //         break;
+                //     } 
+                //     payload_length = length - 2;
+
+                //     if (valid_targets[20] == 1){ // skip over since user mentioned this
+                //         valid_targets[20] = -1;
+                //         fseek(input_file, length, SEEK_CUR);
+                //     }
+                //     else{
+                //         putc(byte1, output_file); // FF marker
+                //         putc(byte2, output_file); // other marker
+
+                //         putc(high, output_file);
+                //         putc(low, output_file); 
+
+                //         for(int i = 0; i < payload_length; ++i){
+                //             byte1 = getc(input_file);
+                //             putc(byte1, output_file); // copying the whole payload segment
+                //         }
+                    // }
+                // }
+                else{
                     putc(byte1, output_file);
                     putc(byte2, output_file);
-
-                    if(byte1 == EOF || byte2 == EOF) break; // guardrail incase of broken file
-
-                    if(byte1 == 0xFF && byte2 == 0xD9){ // end of image
-                        break;
-                    }
-                }
-
-                int flag = 0;
-                if(valid_targets[21] == 0){                
-                    while(1){
-                        byte1 = getc(input_file); // should start after d9
-                        if(byte1 == EOF) break;
-
-                        putc(byte1, output_file);
-
-                    }
-                }
-                else{
-                    while(1){
-                        byte1 = getc(input_file); // should start after d9
-                        if(byte1 == EOF) break;
-                        
-                        // it is a check to see if trailing data exist or not
-                        flag = (flag == 0) ? 1 : 0; // as soon as one character of trailing data is found set it to 1 
-                        
-                        break;
-
-                    }
-                    if (flag == 1)
-                        printf("Trailing data stripped\n");
-                    else
-                        printf("Trilaing data does not exist\n");
                 }
             }
-
+            else{
+                putc(byte1, output_file);
+            }
 
         }
         

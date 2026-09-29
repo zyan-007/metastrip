@@ -381,7 +381,26 @@ void metastrip_strip(FILE* input_file, char* output_filename, int* valid_targets
                         }
                     }
                 }
-                
+                else if(byte2 == 0xD9){ // End of image
+                    putc(byte1, output_file);
+                    putc(byte2, output_file);
+
+                    if(valid_targets[21] == 1){
+                        // checking for trailing data
+                        byte2 = getc(input_file); 
+                        if (byte2 != EOF){ // this means trailing data exist
+                            valid_targets[21] = -1;
+                        }
+                    }
+                    else{
+                        while(1){
+                            byte2 = getc(input_file);
+                            if(byte2 == EOF) break;
+                            putc(byte2, output_file);
+                        }
+                    }
+                    break; // nothing more to copy
+                }
                 
                 else{
                     putc(byte1, output_file);
@@ -400,21 +419,27 @@ void metastrip_strip(FILE* input_file, char* output_filename, int* valid_targets
         };
 
         // printing targets stipped
-        for(int i = 0; i < 22; ++i){
-            if(valid_targets[i] == -1){
-                printf("Stripped %s\n", target_name[i]);
+        if (is_all_used == 0){
+            for(int i = 0; i < 22; ++i){
+                if(valid_targets[i] == -1){
+                    printf("Stripped %s\n", target_name[i]);
+                }
+                else if(valid_targets[i] == 1){
+                    printf("%s not found, nothing stripped\n", target_name[i]);
+                }
+                if(i == 1 && (valid_targets[i] == -1 || valid_targets[i] == 1)){ // skip exif and xmp
+                    i+=2;
+                }
+                else if(i == 4 && (valid_targets[i] == -1 || valid_targets[i] == 1)){ //skip icc
+                    i++;
+                }
+                else if(i == 16 && (valid_targets[i] == -1 || valid_targets[i] == 1)){ // skip iptc
+                    i++;
+                }
             }
-            if(i == 1 && (valid_targets[i] == -1 || valid_targets[i] == 1)){ // skip exif and xmp
-                i+=2;
-            }
-            else if(i == 4 && (valid_targets[i] == -1 || valid_targets[i] == 1)){ //skip icc
-                i++;
-            }
-            else if(i == 16 && (valid_targets[i] == -1 || valid_targets[i] == 1)){ // skip iptc
-                i++;
-            }
+            printf("\n");
         }
-        printf("\n");
+
         
         fclose(output_file);
     }
@@ -986,6 +1011,7 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                     }
                 }
             }
+
         }
         else{
             printf("!! Image might not be jpg or might be corrupted !!\n");

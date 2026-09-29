@@ -675,9 +675,9 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                     print_payload(file, length, read_char, valid_targets, is_all_used, 0, byte2); 
 
 
-                else if((byte1 == 0xFF && byte2 == 0xE1) && (valid_targets[1] == 1 || valid_targets[2] == 1 || valid_targets[3] == 1)){ // app1
+                else if((byte1 == 0xFF && byte2 == 0xE1) && (valid_targets[1] == 1 || valid_targets[2] == 1 || valid_targets[3] == 1 || valid_targets[1] == -1 || valid_targets[2] == -1 || valid_targets[3] == -1)){ // app1
                 
-                    if (valid_targets[1] == 1){
+                    if (valid_targets[1] == 1 || valid_targets[1] == -1){
                         print_payload(file, length, read_char, valid_targets, is_all_used, 1, byte2); 
                         
                         if(is_all_used == 0){ 
@@ -687,7 +687,7 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                         continue;
                     }
 
-                    if(valid_targets[2] == 1){
+                    if(valid_targets[2] == 1 || valid_targets[2] == -1){
                         printf("EXIF: Payload-legnth: %d\n", length-2);
                         long long t = length - 2;
                         char iden_str[6]; // identifier string
@@ -723,7 +723,7 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                         continue;                 
                     }                   
                     
-                    if(valid_targets[3] == 1){
+                    if(valid_targets[3] == 1 || valid_targets[3] == -1){
                         long long t = length - 2;
                         char iden_str[30]; // "http://ns.adobe.com/xap/1.0/" (29 chars) + null terminator
 
@@ -760,8 +760,8 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                 
                 }
 
-                else if((byte1 == 0xFF && byte2 == 0xE2) && (valid_targets[4] == 1 || valid_targets[5] == 1)){ // app2
-                    if (valid_targets[4] == 1){
+                else if((byte1 == 0xFF && byte2 == 0xE2) && (valid_targets[4] == 1 || valid_targets[5] == 1 || valid_targets[4] == -1 || valid_targets[5] == -1)){ // app2
+                    if (valid_targets[4] == 1 || valid_targets[4] == -1){
                         print_payload(file, length, read_char, valid_targets, is_all_used, 4, byte2);
 
                         if(is_all_used == 0)
@@ -769,7 +769,7 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                         continue;
                     }
 
-                    if(valid_targets[5] == 1){
+                    if(valid_targets[5] == 1 || valid_targets[5] == -1){
                         long long t = length - 2;
                         char iden_str[12]; // "ICC_PROFILE" (11 chars) + null terminator
 
@@ -834,8 +834,8 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                 else if((byte1 == 0xFF && byte2 == 0xEC) && valid_targets[15] == 1) // app12
                     print_payload(file, length, read_char, valid_targets, is_all_used, 15, byte2); 
 
-                else if((byte1 == 0xFF && byte2 == 0xED) && (valid_targets[16] == 1 || valid_targets[17] == 1)){ // app13
-                    if (valid_targets[16] == 1){
+                else if((byte1 == 0xFF && byte2 == 0xED) && (valid_targets[16] == 1 || valid_targets[17] == 1 || valid_targets[16] == -1 || valid_targets[17] == -1)){ // app13
+                    if (valid_targets[16] == 1 || valid_targets[16] == -1){
                         print_payload(file, length, read_char, valid_targets, is_all_used, 16, byte2);
 
                         if(is_all_used == 0)
@@ -843,7 +843,7 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                         continue;
                     }
 
-                    if(valid_targets[17] == 1){
+                    if(valid_targets[17] == 1 || valid_targets[17] == -1){
                         long long t = length - 2;
                         char iden_str[14]; // "Photoshop 3.0" (13 chars) + null terminator
 

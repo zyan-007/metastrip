@@ -381,7 +381,51 @@ void metastrip_strip(FILE* input_file, char* output_filename, int* valid_targets
 
                     continue;
                 }
-    
+                
+                if(valid_targets[17] == 1 && byte2 == 0xED && is_all_used == 0 && valid_targets[16] == 0){ //iptc
+                    // for reading length
+                    high = getc(input_file); 
+                    low = getc(input_file);
+
+                    /*
+                    let's say length is 16 in decimal
+                    high will be 0x00
+                    low will be 0x10
+                    two bytes need to be combined to be passed to fseek
+                    so combine these two bytes into one (high << 8) | low is done
+                    */
+                    length = (high << 8) | low;
+                    if (length < 2){
+                        fprintf(stderr, "Segment length is incorrect\n");
+                        break;
+                    } 
+                    payload_length = length - 2;
+
+                    // need to check the the following segment is exif or not byte reading the initial bytes from 
+                    char iden_str[14]; // identifier string
+                    for(int i = 0; i < 14; ++i){ // to read exif in payload
+                        iden_str[i] = getc(input_file);
+                    }
+                    iden_str[13] = '\0'; // guard rail just incase
+                    // printf("%s\n", iden_str);
+                    if((strcmp(iden_str, "Photoshop 3.0") == 0) && valid_targets[17] == 1){
+                        valid_targets[17] = -1;
+                        fseek(input_file, payload_length-14, SEEK_CUR);
+                    }
+                    else{
+                        putc(byte1, output_file); // ff, marker's first part
+                        putc(byte2, output_file); // other marker part
+
+                        fseek(input_file, -14-2, SEEK_CUR); // for 12 charachters read and payload length read go back
+                        while(length--){ // writing everything to ouput including payload length
+                            byte2 = getc(input_file);
+                            putc(byte2, output_file);
+                        }
+                    }
+
+                    continue;
+                }
+
                 if (byte2 >= 0xE0 && byte2 <= 0xEF){ // app segments
                     unsigned char app_markers[16] = {
                         0XE0, 0XE1, 0XE2, 0XE3, 0XE4, 0XE5, 0XE6, 0XE7, 0XE8, 0XE9, 0XEA, 0XEB, 0XEC, 0XED, 0XEE, 0XEF

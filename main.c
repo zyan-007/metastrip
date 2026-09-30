@@ -836,23 +836,14 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                     print_payload(file, length, read_char, valid_targets, is_all_used, 0, byte2); 
 
 
-                else if((byte1 == 0xFF && byte2 == 0xE1) && (valid_targets[1] == 1 || valid_targets[2] == 1 || valid_targets[3] == 1 || valid_targets[1] == -1 || valid_targets[2] == -1 || valid_targets[3] == -1)){ // app1
+                else if((byte1 == 0xFF && byte2 == 0xE1) && (valid_targets[1] == 1 || valid_targets[2] == 1 || valid_targets[3] == 1)){ // app1
                 
-                    if (valid_targets[1] == 1 || valid_targets[1] == -1){
-                        print_payload(file, length, read_char, valid_targets, is_all_used, 1, byte2); 
-                        
-                        if(is_all_used == 0){ 
-                            valid_targets[2] = -1;
-                            valid_targets[3] = -1;
-                        }
-                        continue;
-                    }
+                    if((valid_targets[2] == 1) && valid_targets[1] == 0 && is_all_used == 0){
 
-                    if(valid_targets[2] == 1 || valid_targets[2] == -1){
-                        printf("EXIF: Payload-legnth: %d\n", length-2);
-                        long long t = length - 2;
+                        printf("EXIF: Payload-length: %d\n", length-2);
+                        long long payload_length = length - 2;
                         char iden_str[6]; // identifier string
-                        FILE* new_file = fopen("exif_save.txt", "w"); // new file to save the data
+                        FILE* exif_file = fopen("exif_save.txt", "w"); // new file to save the data
                         for(int i = 0; i < 6; ++i){ // to read exif in payload
                             iden_str[i] = getc(file);
                         }
@@ -860,31 +851,38 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                         // printf("%s\n", iden_str);
 
                         if(strcmp(iden_str, "Exif") == 0){
-                            t -= 6;
-                            char c;
-                            int new_line = 0; // after printing every 100 character move to new line so you don't scroll horizontally for long
-                            while(t--){
-                                if(new_line > 100){
-                                    new_line = 0;
-                                    putc('\n', new_file);
+                            valid_targets[2] = -1;
+                            payload_length -= 6;
+                            fseek(file, -6, SEEK_CUR);
+                            unsigned exif_char;
+                            int char_count = 0; // incase 500 characters reached new line
+                            while(payload_length--){ // copying characters byte by byte
+                                if(char_count > 500){ // new line as less that 500 characters per line
+                                    putc('\n', exif_file);
+                                    char_count = 0;
                                 }
-                                c = getc(file);
-                                // remove this if you wish to see raw data in file. [for v.1.2] i can give --hex option to print raw bytes or print only printable char [future idea] - not currenly inlemented
-                                putc(((c >= 32 && c <= 126) ? c : '.'), new_file); // writing to file instead of printing in terminal
-                                new_line++;
+                                exif_char = getc(file);
+                                if(exif_char >= 32 && exif_char <= 126){ // change this if you would like to print non printable character as well, beware this might look messy
+                                    putc(exif_char, exif_file);
+                                }
+                                else
+                                    putc('.', exif_file); // if not a printable character than print .
+                                ++char_count;
+
+                                
                             }
 
                             printf("Written exif (printable character only) to file 'exif_save.txt'\n");
 
-                            fclose(new_file);
+                            fclose(exif_file);
                             valid_targets[2] = -1;
                         }
                         else
-                            fseek(file, t-6, SEEK_CUR);       
+                            fseek(file, payload_length-6, SEEK_CUR);       
                         continue;                 
                     }                   
                     
-                    if(valid_targets[3] == 1 || valid_targets[3] == -1){
+                    if(valid_targets[3] == 1 && valid_targets[1] == 1 && is_all_used == 0){
                         long long t = length - 2;
                         char iden_str[30]; // "http://ns.adobe.com/xap/1.0/" (29 chars) + null terminator
 
@@ -917,6 +915,16 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                         }
                         else
                             fseek(file, t-30, SEEK_CUR);
+                    }
+                
+                    if (valid_targets[1] == 1 || valid_targets[1] == -1){
+                        print_payload(file, length, read_char, valid_targets, is_all_used, 1, byte2); 
+                        
+                        if(is_all_used == 0){ 
+                            valid_targets[2] = -1;
+                            valid_targets[3] = -1;
+                        }
+                        continue;
                     }
                 
                 }

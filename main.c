@@ -264,10 +264,10 @@ void metastrip_strip(FILE* input_file, char* output_filename, int* valid_targets
     int byte1 = getc(input_file); // storing first byte should be FF
     int byte2 = getc(input_file); // storing second byte should be D8
 
-    // printf("\n");
-    // for(int i = 0; i <= 21; ++i)
-    //     printf("%d ", valid_targets[i]);
-    // printf("\n");
+    printf("\n");
+    for(int i = 0; i <= 21; ++i)
+        printf("%d ", valid_targets[i]);
+    printf("\n");
 
     if (byte1 == 0xFF && byte2 == 0xD8){ //jpg images start from FF D8
         // if input file is valid jpg then output file is written
@@ -290,6 +290,58 @@ void metastrip_strip(FILE* input_file, char* output_filename, int* valid_targets
                 byte2 = getc(input_file);
                 if (byte2 == EOF) break; // guard rail just incase
 
+                // only strips if explicilty mentioned without app1 overlapping
+                if((valid_targets[2] == 1 || valid_targets[3] == 1) && byte2 == 0xE1 && is_all_used == 0 && valid_targets[1] == 0){ // exif
+                    // for reading length
+                    high = getc(input_file); 
+                    low = getc(input_file);
+
+                    /*
+                    let's say length is 16 in decimal
+                    high will be 0x00
+                    low will be 0x10
+                    two bytes need to be combined to be passed to fseek
+                    so combine these two bytes into one (high << 8) | low is done
+                    */
+                    length = (high << 8) | low;
+                    if (length < 2){
+                        fprintf(stderr, "Segment length is incorrect\n");
+                        break;
+                    } 
+                    payload_length = length - 2;
+
+                    // need to check the the following segment is exif or not byte reading the initial bytes from 
+                    char iden_str[30]; // identifier string
+                    for(int i = 0; i < 30; ++i){ // to read exif in payload
+                        iden_str[i] = getc(input_file);
+                    }
+                    iden_str[29] = '\0'; // guard rail just incase
+                    // printf("%s\n", iden_str);
+                    if((strcmp(iden_str, "Exif") == 0) && valid_targets[2] == 1){
+                        valid_targets[2] = -1;
+                        fseek(input_file, payload_length-30, SEEK_CUR);
+                    }
+                    else if((strcmp(iden_str, "http://ns.adobe.com/xap/1.0/") == 0) && valid_targets[3] == 1){
+                        valid_targets[3] = -1;
+                        fseek(input_file, payload_length-30, SEEK_CUR);
+                    }
+                    else{
+                        putc(byte1, output_file); // ff, marker's first part
+                        putc(byte2, output_file); // other marker part
+
+                        fseek(input_file, -30-2, SEEK_CUR); // for 30 charachters read and payload length read go back
+                        while(length--){ // writing everything to ouput including payload length
+                            byte2 = getc(input_file);
+                            putc(byte2, output_file);
+                        }
+                    }
+                    continue; 
+                }
+                
+                if(valid_targets[5] == 1 && byte2 == 0xE2 && is_all_used == 0 && valid_targets[4] == 0){ // icc
+
+                }
+    
                 if (byte2 >= 0xE0 && byte2 <= 0xEF){ // app segments
                     unsigned char app_markers[16] = {
                         0XE0, 0XE1, 0XE2, 0XE3, 0XE4, 0XE5, 0XE6, 0XE7, 0XE8, 0XE9, 0XEA, 0XEB, 0XEC, 0XED, 0XEE, 0XEF
@@ -308,7 +360,7 @@ void metastrip_strip(FILE* input_file, char* output_filename, int* valid_targets
                             break; // this will give us i
                         }
                     }
-                                        // for reading length
+                    // for reading length
                     high = getc(input_file); 
                     low = getc(input_file);
 

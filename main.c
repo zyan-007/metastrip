@@ -865,7 +865,7 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                         // printf("%s\n", iden_str);
 
                         if(strcmp(iden_str, "Exif") == 0){
-                            printf("EXIF: Payload-length: %d\n", length-2);
+                            printf("EXIF: Payload-length: %d bytes\n", length-2);
 
                             valid_targets[2] = -1;
                             fseek(file, -6, SEEK_CUR);
@@ -908,7 +908,7 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                         }
 
                         if(strcmp(iden_str, "http://ns.adobe.com/xap/1.0/") == 0){
-                            printf("Xmp: Payload-length: %d\n", length-2);
+                            printf("Xmp: Payload-length: %d bytes\n", length-2);
 
 
                             FILE* xmp_file = fopen("xmp_save.txt", "w");
@@ -1032,7 +1032,7 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                     }
 
                     if(valid_targets[17] == 1 || valid_targets[17] == -1){
-                        long long t = length - 2;
+                        long long payload_length = length - 2;
                         char iden_str[14]; // "Photoshop 3.0" (13 chars) + null terminator
 
                         for(int i = 0; i < 14; ++i){ // to read iptc identifier in payload
@@ -1041,32 +1041,39 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
 
                         if(strcmp(iden_str, "Photoshop 3.0") == 0){
 
-                            
+                            printf("iptc: Payload-length: %d bytes\n", length-2);
 
 
-                            printf("IPTC: Payload-legnth: %d\n", length-2);
-                            t -= 14;
+                            FILE* iptc_file = fopen("iptc_save.txt", "w");
+                            valid_targets[17] = -1;
+                            fseek(file, -14, SEEK_CUR);
+                            fprintf(iptc_file, "Writing only printable characters - if not printable than '.' is written\n");
 
-                            FILE* new_file = fopen("iptc_save.txt", "w"); // new file to save the data
-
-                            char c;
-                            int new_line = 0;
-                            while(t--){
-                                if(new_line > 100){
-                                    new_line = 0;
-                                    putc('\n', new_file);
+                            unsigned iptc_char;
+                            int char_count = 0; // incase 500 characters reached new line
+                            while(payload_length--){ // copying characters byte by byte
+                                if(char_count > 500){ // new line as less that 500 characters per line
+                                    putc('\n', iptc_file);
+                                    char_count = 0;
                                 }
-                                c = getc(file);
-                                putc(((c >= 32 && c <= 126) ? c : '.'), new_file);
-                                new_line++;
+                                iptc_char = getc(file);
+                                if(iptc_char >= 32 && iptc_char <= 126){ // change this if you would like to print non printable character as well, beware this might look messy
+                                    putc(iptc_char, iptc_file);
+                                }
+                                else
+                                    putc('.', iptc_file); // if not a printable character than print .
+                                ++char_count;
+
+                                
                             }
+
                             printf("Written iptc (printable character only) to file 'iptc_save.txt'\n");
 
-                            fclose(new_file);
-                            valid_targets[17] = -1;
+                            fclose(iptc_file);
+
                         }
                         else
-                            fseek(file, t-14, SEEK_CUR);
+                            fseek(file, payload_length-14, SEEK_CUR);
                     }
                 }
 

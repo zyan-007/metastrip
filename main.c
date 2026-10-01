@@ -855,7 +855,6 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
 
                     if((valid_targets[2] == 1) && valid_targets[1] == 0 && is_all_used == 0){
 
-                        printf("EXIF: Payload-length: %d\n", length-2);
                         long long payload_length = length - 2;
                         char iden_str[6]; // identifier string
                         FILE* exif_file = fopen("exif_save.txt", "w"); // new file to save the data
@@ -866,6 +865,8 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                         // printf("%s\n", iden_str);
 
                         if(strcmp(iden_str, "Exif") == 0){
+                            printf("EXIF: Payload-length: %d\n", length-2);
+
                             valid_targets[2] = -1;
                             fseek(file, -6, SEEK_CUR);
                             fprintf(exif_file, "Writing only printable characters - if not printable than '.' is written\n");
@@ -898,7 +899,6 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                     }                   
                     
                     if(valid_targets[3] == 1 && valid_targets[1] == 0 && is_all_used == 0){
-                        printf("Xmp: Payload-length: %d\n", length-2);
 
                         long long payload_length = length - 2;
                         char iden_str[30]; // "http://ns.adobe.com/xap/1.0/" (29 chars) + null terminator
@@ -908,10 +908,11 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                         }
 
                         if(strcmp(iden_str, "http://ns.adobe.com/xap/1.0/") == 0){
+                            printf("Xmp: Payload-length: %d\n", length-2);
+
 
                             FILE* xmp_file = fopen("xmp_save.txt", "w");
                             valid_targets[3] = -1;
-                            payload_length -= 30;
                             fseek(file, -30, SEEK_CUR);
                             fprintf(xmp_file, "Writing only printable characters - if not printable than '.' is written\n");
 
@@ -1039,6 +1040,10 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                         }
 
                         if(strcmp(iden_str, "Photoshop 3.0") == 0){
+
+                            
+
+
                             printf("IPTC: Payload-legnth: %d\n", length-2);
                             t -= 14;
 

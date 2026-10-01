@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #define MAX_FILE_NUMBER_GENERATE 1000 // max file number guardrail used in generate_output_filename 
+#define JPEG_VALID_TARGET_COUNT 22 // for all the target from app0-15, exif, xmp, icc, iptc, com and trailing
 
 void print_usage(); // called when --help, -h or metastrip alone is written
 int is_valid_subcommand_target(char*, int*, int*);
@@ -43,7 +44,7 @@ int main(int argc, char* argv[]){
         hope you understand this one maybe in future as the project grow i will change this whole indexing part
         but right now this is the best thing i could come up with.
     */
-    int valid_targets[22] = {0};
+    int valid_targets[JPEG_VALID_TARGET_COUNT] = {0};
 
     if(argc == 1){
         print_usage();
@@ -264,10 +265,10 @@ void metastrip_strip(FILE* input_file, char* output_filename, int* valid_targets
     int byte1 = getc(input_file); // storing first byte should be FF
     int byte2 = getc(input_file); // storing second byte should be D8
 
-    printf("\n");
-    for(int i = 0; i <= 21; ++i)
-        printf("%d ", valid_targets[i]);
-    printf("\n");
+    // printf("\n");
+    // for(int i = 0; i < JPEG_VALID_TARGET_COUNT; ++i)
+    //     printf("%d ", valid_targets[i]);
+    // printf("\n");
 
     if (byte1 == 0xFF && byte2 == 0xD8){ //jpg images start from FF D8
         // if input file is valid jpg then output file is written
@@ -549,14 +550,14 @@ void metastrip_strip(FILE* input_file, char* output_filename, int* valid_targets
 
         }
 
-        char* target_name[22] = { // all names for segment according to how they are stored in valid targets
+        char* target_name[JPEG_VALID_TARGET_COUNT] = { // all names for segment according to how they are stored in valid targets
         "app0", "app1", "exif", "xmp", "app2", "icc", "app3", "app4", "app5", "app6",
         "app7", "app8", "app9", "app10", "app11", "app12", "app13", "iptc", "app14", "app15", "com", "trailing"
         };
 
         // printing targets stipped
         if (is_all_used == 0){
-            for(int i = 0; i < 22; ++i){
+            for(int i = 0; i < JPEG_VALID_TARGET_COUNT; ++i){
                 if(valid_targets[i] == -1){
                     printf("Stripped %s\n", target_name[i]);
                 }
@@ -739,10 +740,10 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
         int byte1 = getc(file); // storing first byte should be FF
         int byte2 = getc(file); // storing second byte should be D8
 
-        printf("Sements active: ");
-        for(int i = 0; i < 22; ++i)
-            printf("%d ", valid_targets[i]);
-        printf("\n");
+        // printf("Sements active: ");
+        // for(int i = 0; i < 22; ++i)
+        //     printf("%d ", valid_targets[i]);
+        // printf("\n");
 
         if (byte1 == 0xFF && byte2 == 0xD8){ // jpg images start form FF D8
             printf("Segment\tPayload-length\n");
@@ -1101,9 +1102,8 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                 
             }
 
-            // printf("%d", sizeof(valid_targets)/sizeof(int));
             if(is_all_used == 0){
-                for(int i = 0; i < (sizeof(valid_targets)/sizeof(int)); ++i){ 
+                for(int i = 0; i < JPEG_VALID_TARGET_COUNT; ++i){
                     if(valid_targets[i] == 1){
                         switch (i){
                         case 0:
@@ -1275,7 +1275,7 @@ int is_valid_subcommand_target(char* target, int* target_list, int* is_all_avail
 
         if (strcmp(end, "all") == 0){
             flag = 1;
-            for(int i = 0; i <= 21; ++i)
+            for(int i = 0; i < JPEG_VALID_TARGET_COUNT; ++i)
                 *(target_list+i) += 1;
 
             end = strtok(NULL, ",");
@@ -1387,7 +1387,7 @@ int is_valid_file(char* filename){
 
 void check_dublicates(int* target_list){
 
-    for(int i = 0; i <= 21; ++i){
+    for(int i = 0; i < JPEG_VALID_TARGET_COUNT; ++i){
         if(*(target_list+i) > 1){
             printf("!! Dublicate targets are not allowed !!\n\n");
             exit(2);

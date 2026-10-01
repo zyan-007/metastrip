@@ -739,6 +739,11 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
         int byte1 = getc(file); // storing first byte should be FF
         int byte2 = getc(file); // storing second byte should be D8
 
+        printf("Sements active: ");
+        for(int i = 0; i < 22; ++i)
+            printf("%d ", valid_targets[i]);
+        printf("\n");
+
         if (byte1 == 0xFF && byte2 == 0xD8){ // jpg images start form FF D8
             printf("Segment\tPayload-length\n");
 
@@ -836,8 +841,8 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                     print_payload(file, length, read_char, valid_targets, is_all_used, 0, byte2); 
 
 
-                else if((byte1 == 0xFF && byte2 == 0xE1) && (valid_targets[1] == 1 || valid_targets[2] == 1 || valid_targets[3] == 1)){ // app1
-                
+                else if((byte1 == 0xFF && byte2 == 0xE1) && (valid_targets[1] == 1 || valid_targets[1] == -1 || valid_targets[2] == 1 || valid_targets[3] == 1)){ // app1
+                    // printf("check");
                     if((valid_targets[2] == 1) && valid_targets[1] == 0 && is_all_used == 0){
 
                         printf("EXIF: Payload-length: %d\n", length-2);
@@ -854,6 +859,7 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                             valid_targets[2] = -1;
                             payload_length -= 6;
                             fseek(file, -6, SEEK_CUR);
+                            fprintf(exif_file, "Writing only printable characters - if not printable than '.' is written\n");
                             unsigned exif_char;
                             int char_count = 0; // incase 500 characters reached new line
                             while(payload_length--){ // copying characters byte by byte
@@ -875,15 +881,15 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                             printf("Written exif (printable character only) to file 'exif_save.txt'\n");
 
                             fclose(exif_file);
-                            valid_targets[2] = -1;
+                        
                         }
                         else
                             fseek(file, payload_length-6, SEEK_CUR);       
                         continue;                 
                     }                   
                     
-                    if(valid_targets[3] == 1 && valid_targets[1] == 1 && is_all_used == 0){
-                        long long t = length - 2;
+                    if(valid_targets[3] == 1 && valid_targets[1] == 0 && is_all_used == 0){
+                        long long payload_length = length - 2;
                         char iden_str[30]; // "http://ns.adobe.com/xap/1.0/" (29 chars) + null terminator
 
                         for(int i = 0; i < 30; ++i){ // to read xmp identifier in payload
@@ -891,35 +897,44 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                         }
 
                         if(strcmp(iden_str, "http://ns.adobe.com/xap/1.0/") == 0){
-                            printf("XMP: Payload-legnth: %d\n", length-2);
-                            t -= 30;
 
-                            FILE* new_file = fopen("xmp_save.txt", "w"); // new file to save the data
-
-                            char c;
-                            int new_line = 0; // after printing every 100 character move to new line so you don't scroll horizontally for long
-                            while(t--){
-                                if(new_line > 100){
-                                    new_line = 0;
-                                    putc('\n', new_file);
-                                }
-                                c = getc(file);
-                                // remove this if you wish to see raw data in file. [for v.1.2] i can give --hex option to print raw bytes or print only printable char [future idea] - not currenly inlemented
-                                putc(((c >= 32 && c <= 126) ? c : '.'), new_file); // writing to file instead of printing in terminal
-                                new_line++;
-                            }
-                            printf("Written xmp (printable character only) to file 'xmp_save.txt'\n");
-
-                            fclose(new_file);
+                            FILE* xmp_file = fopen("xmp_save.txt", "w");
                             valid_targets[3] = -1;
+                            payload_length -= 30;
+                            fseek(file, -30, SEEK_CUR);
+                            fprintf(xmp_file, "Writing only printable characters - if not printable than '.' is written\n");
+
+                            unsigned xmp_char;
+                            int char_count = 0; // incase 500 characters reached new line
+                            while(payload_length--){ // copying characters byte by byte
+                                if(char_count > 500){ // new line as less that 500 characters per line
+                                    putc('\n', xmp_file);
+                                    char_count = 0;
+                                }
+                                xmp_char = getc(file);
+                                if(xmp_char >= 32 && xmp_char <= 126){ // change this if you would like to print non printable character as well, beware this might look messy
+                                    putc(xmp_char, xmp_file);
+                                }
+                                else
+                                    putc('.', xmp_file); // if not a printable character than print .
+                                ++char_count;
+
+                                
+                            }
+
+                            printf("Written exif (printable character only) to file 'xmp_save.txt'\n");
+
+                            fclose(xmp_file);
+                            
                         }
                         else
-                            fseek(file, t-30, SEEK_CUR);
+                            fseek(file, payload_length-30, SEEK_CUR);
+                        continue;
                     }
                 
                     if (valid_targets[1] == 1 || valid_targets[1] == -1){
                         print_payload(file, length, read_char, valid_targets, is_all_used, 1, byte2); 
-                        
+                        valid_targets[1] = -1;
                         if(is_all_used == 0){ 
                             valid_targets[2] = -1;
                             valid_targets[3] = -1;

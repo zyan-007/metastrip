@@ -843,6 +843,16 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
 
                 else if((byte1 == 0xFF && byte2 == 0xE1) && (valid_targets[1] == 1 || valid_targets[1] == -1 || valid_targets[2] == 1 || valid_targets[3] == 1)){ // app1
                     // printf("check");
+                    if (valid_targets[1] == 1 || valid_targets[1] == -1){
+                        print_payload(file, length, read_char, valid_targets, is_all_used, 1, byte2); 
+                        valid_targets[1] = -1;
+                        if(is_all_used == 0){  // if app1 called with exif and xmp then it ignores xmp and exif (anyone who is reading this wishes to print app1 along with xmp and exif write can move this condition below xmp's condition)
+                            valid_targets[2] = -1;
+                            valid_targets[3] = -1;
+                        }
+                        continue;
+                    }
+
                     if((valid_targets[2] == 1) && valid_targets[1] == 0 && is_all_used == 0){
 
                         printf("EXIF: Payload-length: %d\n", length-2);
@@ -857,7 +867,6 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
 
                         if(strcmp(iden_str, "Exif") == 0){
                             valid_targets[2] = -1;
-                            payload_length -= 6;
                             fseek(file, -6, SEEK_CUR);
                             fprintf(exif_file, "Writing only printable characters - if not printable than '.' is written\n");
                             unsigned exif_char;
@@ -889,6 +898,8 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                     }                   
                     
                     if(valid_targets[3] == 1 && valid_targets[1] == 0 && is_all_used == 0){
+                        printf("Xmp: Payload-length: %d\n", length-2);
+
                         long long payload_length = length - 2;
                         char iden_str[30]; // "http://ns.adobe.com/xap/1.0/" (29 chars) + null terminator
 
@@ -922,7 +933,7 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                                 
                             }
 
-                            printf("Written exif (printable character only) to file 'xmp_save.txt'\n");
+                            printf("Written xmp (printable character only) to file 'xmp_save.txt'\n");
 
                             fclose(xmp_file);
                             
@@ -932,15 +943,7 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                         continue;
                     }
                 
-                    if (valid_targets[1] == 1 || valid_targets[1] == -1){
-                        print_payload(file, length, read_char, valid_targets, is_all_used, 1, byte2); 
-                        valid_targets[1] = -1;
-                        if(is_all_used == 0){ 
-                            valid_targets[2] = -1;
-                            valid_targets[3] = -1;
-                        }
-                        continue;
-                    }
+                    
                 
                 }
 

@@ -5,9 +5,7 @@
 ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 ![platform](https://img.shields.io/badge/platform-JPEG%20only-orange)
 
-**metastrip** is a command-line tool, written in C from scratch, for inspecting the metadata segments hidden inside JPEG files — EXIF, XMP, ICC color profiles, comments, and raw APP0–APP15 marker segments — without needing a GUI or a heavyweight library.
-
-> **Note:** this is version `1.0.0` and covers metadata **viewing** (`show`) only. Stripping/removing metadata is planned for a future release.
+**metastrip** is a command-line tool, written in C from scratch, for inspecting and removing the metadata segments hidden inside JPEG files — EXIF, XMP, ICC color profiles, comments, and raw APP0–APP15 marker segments — without needing a GUI or a heavyweight library.
 
 ---
 
@@ -21,15 +19,26 @@
 
 ![metastrip rejecting invalid, duplicate, and malformed input](assets/demo-validation.gif)
 
+**Stripping metadata (whole file, a single target, and a custom output path):**
+
+![metastrip stripping metadata from a JPEG file](assets/demo-strip.gif)
+
+**Automatic output filename generation (never overwrites an existing file):**
+
+![metastrip auto-generating a non-colliding output filename](assets/auto-file-generation.gif)
+
 ---
 
 ## Features
 
 - View **every** metadata segment in a JPEG at once, or filter down to exactly what you want
+- **Strip** metadata out entirely — the whole file, or just the target(s) you choose — and write the result to a new file, never touching your original
 - Target segments either by **JPEG marker number** (`app0` … `app15`, `com`) or by **content identifier** (`exif`, `xmp`, `icc`, `iptc`) — metastrip reads the actual payload signature to tell apart, for example, the two different things that can live inside an `APP1` segment (EXIF vs. XMP)
 - Detect **trailing data** appended after the end of the actual image stream
 - Combine multiple targets in a single command (`app0,com,exif`)
 - Input validation that catches invalid targets, duplicate targets, and malformed combinations *before* ever opening your file
+- **Automatic, collision-free output naming** when stripping — or pin down an exact output path yourself with `-o`/`--output`
+- Refuses to ever overwrite an existing file, whether the output name was generated automatically or given explicitly
 - Zero external dependencies — pure C, standard library only
 
 ---
@@ -128,13 +137,21 @@ Once set up, you can run `metastrip <command>` from any directory, on any file, 
 ```
 metastrip show <file>
 metastrip show <target> <file>
+metastrip strip <file>
+metastrip strip <target> <file>
+metastrip strip <file> -o|--output <output-file>
+metastrip strip <target> <file> -o|--output <output-file>
 metastrip -h | --help
 metastrip -v | --version
 ```
 
 - `metastrip show <file>` — shows **all** metadata segments found in the file (equivalent to explicitly passing `all` as the target)
 - `metastrip show <target> <file>` — shows only the segment(s) matching `<target>`
+- `metastrip strip <file>` — writes a copy of the file with **all** metadata removed (equivalent to `strip all <file>`)
+- `metastrip strip <target> <file>` — writes a copy with only the matching segment(s) removed; everything else is preserved
+- `metastrip strip ... -o <output-file>` / `--output <output-file>` — write the result to a specific path instead of an auto-generated one
 - `<target>` can be a **comma-separated list** of multiple targets, e.g. `app0,com,exif`
+- `show` only ever reads the file. `strip` never modifies the input file — it always writes to a separate output file.
 
 ### Targets
 
@@ -178,15 +195,64 @@ metastrip show exif,xmp,icc photo.jpg
 
 # Redirect output to a file
 metastrip show exif photo.jpg > metadata.txt
+
+# Strip everything, let metastrip name the output file
+metastrip strip photo.jpg
+
+# Strip only the EXIF data, leave everything else intact
+metastrip strip exif photo.jpg
+
+# Strip multiple targets at once
+metastrip strip exif,xmp,icc photo.jpg
+
+# Strip everything and choose the output path yourself
+metastrip strip photo.jpg -o clean.jpg
+
+# Strip a specific target with a custom output path
+metastrip strip exif photo.jpg --output clean.jpg
 ```
+
+---
+
+## Automatic output filename generation
+
+`strip` never modifies the file you give it — it always writes the result to a separate output file, and it will **never overwrite an existing file**, whether that output file's name was generated automatically or given explicitly with `-o`/`--output`.
+
+### When no `-o`/`--output` is given
+
+metastrip builds the output name itself as `stripped_<original-name>`:
+
+```
+metastrip strip photo.jpg          ->  stripped_photo.jpg
+```
+
+If `stripped_photo.jpg` already exists, it tries `stripped_1_photo.jpg`, then `stripped_2_photo.jpg`, and so on, counting up until it finds a name that isn't taken. This search is capped — if every number up to the limit is already in use (999 numbered attempts on top of the base name), metastrip gives up rather than looping forever:
+
+```
+Max file generation limit hit, please delete some existing file or use -o to generate name
+```
+
+At that point, delete some old `stripped_*` files or pass `-o`/`--output` with an explicit name.
+
+### When `-o`/`--output` is given
+
+- If the name you give has **no extension**, metastrip appends the same extension as the input file (`-o clean` on `photo.jpg` → `clean.jpg`).
+- If the name you give **does have an extension**, it must match the input file's extension exactly, or the command is rejected before anything is written:
+  ```
+  !! Extensions provided for input and output file are both incompatible, please provide same extension !!
+  ```
+- Either way, if the resulting filename already exists, metastrip refuses to touch it:
+  ```
+  !! The Output File Provided, Overwriting any existing file is forbidden !!
+  ```
 
 ---
 
 ## Current limitations
 
 - **JPEG files only.** metastrip currently only understands the JPEG file structure (`FF D8` header, `FFxx` marker segments). Other image formats (PNG, TIFF, HEIC, etc.) are not supported.
-- EXIF, XMP, ICC, and IPTC data are currently extracted as **raw payload bytes** (printable characters shown as-is, everything else shown as `.`), written to disk for you to inspect — metastrip does not yet decode the internal structure of EXIF (its TIFF/IFD tag tree) or parse XML from XMP into individual fields.
-- Metadata **removal** is not part of this version.
+- EXIF, XMP, ICC, and IPTC data shown by `show` are displayed as **raw payload bytes** (printable characters shown as-is, everything else shown as `.`) — metastrip does not yet decode the internal structure of EXIF (its TIFF/IFD tag tree) or parse XML from XMP into individual fields.
+- `strip` removes whole metadata segments; it does not selectively edit or redact fields within a segment.
 
 ---
 

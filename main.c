@@ -958,7 +958,7 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                     }
 
                     if(valid_targets[5] == 1 || valid_targets[5] == -1){
-                        long long t = length - 2;
+                        long long payload_length = length - 2;
                         char iden_str[12]; // "ICC_PROFILE" (11 chars) + null terminator
 
                         for(int i = 0; i < 12; ++i){ // to read icc identifier in payload
@@ -966,29 +966,42 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                         }
 
                         if(strcmp(iden_str, "ICC_PROFILE") == 0){
-                            printf("ICC: Payload-legnth: %d\n", length-2);
-                            t -= 12;
 
-                            FILE* new_file = fopen("icc_save.txt", "w"); // new file to save the data
 
-                            char c;
-                            int new_line = 0;
-                            while(t--){
-                                if(new_line > 100){
-                                    new_line = 0;
-                                    putc('\n', new_file);
+                            printf("ICC: Payload-length: %d\n", length-2);
+
+
+                            FILE* icc_file = fopen("icc_save.txt", "w");
+                            valid_targets[5] = -1;
+                            fseek(file, -12, SEEK_CUR);
+                            fprintf(icc_file, "Writing only printable characters - if not printable than '.' is written\n");
+
+                            unsigned icc_char;
+                            int char_count = 0; // incase 500 characters reached new line
+                            while(payload_length--){ // copying characters byte by byte
+                                if(char_count > 500){ // new line as less that 500 characters per line
+                                    putc('\n', icc_file);
+                                    char_count = 0;
                                 }
-                                c = getc(file);
-                                putc(((c >= 32 && c <= 126) ? c : '.'), new_file);
-                                new_line++;
+                                icc_char = getc(file);
+                                if(icc_char >= 32 && icc_char <= 126){ // change this if you would like to print non printable character as well, beware this might look messy
+                                    putc(icc_char, icc_file);
+                                }
+                                else
+                                    putc('.', icc_file); // if not a printable character than print .
+                                ++char_count;
+
+                                
                             }
+
                             printf("Written icc (printable character only) to file 'icc_save.txt'\n");
 
-                            fclose(new_file);
-                            valid_targets[5] = -1;
+                            fclose(icc_file);
+
+
                         }
                         else
-                            fseek(file, t-12, SEEK_CUR);
+                            fseek(file, payload_length-12, SEEK_CUR);
                     }
                 }
 

@@ -15,17 +15,9 @@
 
 ![metastrip showing metadata of a JPEG file](assets/main-function.gif)
 
-**Built-in input validation (rejects bad input before touching a file):**
-
-![metastrip rejecting invalid, duplicate, and malformed input](assets/demo-validation.gif)
-
 **Stripping metadata (whole file, a single target, and a custom output path):**
 
 ![metastrip stripping metadata from a JPEG file](assets/demo-strip.gif)
-
-**Automatic output filename generation (never overwrites an existing file):**
-
-![metastrip auto-generating a non-colliding output filename](assets/auto-file-generation.gif)
 
 ---
 

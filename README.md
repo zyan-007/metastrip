@@ -53,16 +53,20 @@ gcc --version
 
 ## Installation
 
-metastrip ships as source — **you compile it yourself**, there's no prebuilt binary to download.
+### Windows: download the prebuilt binary
 
-### 1. Clone the repository
+Grab `metastrip-<version>-windows-x64.zip` from the [Releases](https://github.com/zyan-007/metastrip/releases) page, extract it, and you'll have `metastrip.exe` ready to run — no compiler needed. Skip to [Running it from anywhere](#running-it-from-anywhere-without-recompiling-every-time) to add it to your `PATH`.
+
+### Build from source (Windows, Linux, macOS)
+
+#### 1. Clone the repository
 
 ```bash
 git clone git@github.com:zyan-007/metastrip.git
 cd metastrip
 ```
 
-### 2. Compile it
+#### 2. Compile it
 
 ```bash
 gcc main.c -o metastrip
@@ -70,7 +74,7 @@ gcc main.c -o metastrip
 
 On Windows this produces `metastrip.exe`; on Linux/macOS it produces `metastrip` (no extension). This step needs to be repeated any time `main.c` changes — see below for how to avoid retyping the full path every time you run it.
 
-### 3. Run it
+#### 3. Run it
 
 From inside the project folder:
 

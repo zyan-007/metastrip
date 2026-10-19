@@ -114,8 +114,19 @@ int main(int argc, char* argv[]){
                     }
                     else{
                         if(is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) != 1){
-                            printf("metastrip: wrong targets provided, please check 'metastrip --help'\n\n");
-                            exit(2);
+                            
+                            if (is_valid_file(argv[2]) == 1 && argc == 4){
+                                snprintf(fileName, 256, "%s", argv[2]);
+
+                                if(is_valid_flag(argv[3], &hexFlag, &phexFlag) != 1){
+                                    printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
+                                    exit(2);
+                                }
+                            }                            
+                            else{
+                                printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
+                                exit(2);
+                            }
                         }
                         else{
                             // printf("check flow\n");

@@ -14,11 +14,14 @@ void metastrip_show(FILE*, int*, int);
 void metastrip_strip(FILE*, char*, int*, int);
 void generate_output_filename(char*, char*, int);
 int check_output_file_exist(char*, char*, char*);
+int is_valid_flag(char*, int*, int*);
 
 int main(int argc, char* argv[]){
     FILE *file;
     char fileName[256]; // file name gets assigned as per the command
     char output_filename[500]; // used with strip where the copy is stored
+    int hexFlag = 0; // 0 means --hex is not used, if 1 then it means it is used
+    int phexFlag = 0; // 0 means --phex is not used, if 1 then it means it is used
 
     int is_all_used = 0; // this will be used during printing so that missing commands are not printed
     /*
@@ -72,6 +75,10 @@ int main(int argc, char* argv[]){
             if (argc == 3){
                 if (is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) == 1){
                     printf("metastrip: no File Provided\n\n");
+                    exit(2);
+                }
+                else if(is_valid_flag(argv[2], &hexFlag, &phexFlag) == 1){
+                    printf("Flags cannot be used without file. See metastrip -h.\n\n");
                     exit(2);
                 }
                 else{
@@ -1389,6 +1396,37 @@ int is_valid_file(char* filename){
     fclose(file);
 
     return 1;
+}
+
+int is_valid_flag(char* flag, int* hex_flag, int* phex_flag){
+    /*
+        if flag == --hex then it checks for phex_flag and hex_flag to 0, that means they haven't been used till now
+        this prevents the dublication problem like --hex --hex or --hex --phex being called by the user
+        same check for flag == --phex
+        if all's good then the function returns 1 else it exits here only
+    */
+    if (strcmp(flag, "--hex") == 0){
+        if (*hex_flag == 0 && *phex_flag == 0)
+            *hex_flag = 1;
+        else{
+            printf("metastrip: Wrong usage of flags, See 'metastrip --help'.\n\n");
+            exit(2);
+        }
+
+        return 1;
+    }
+    else if(strcmp(flag, "--phex") == 0){
+        if(*hex_flag == 0 && *phex_flag == 0)
+            *phex_flag = 1;
+        else{
+            printf("metastrip: Wrong usage of flags, See 'metastrip --help'.\n\n");
+            exit(2);
+        }
+        
+        return 1;
+    }
+
+    return 0;
 }
 
 void check_dublicates(int* target_list){

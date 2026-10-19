@@ -109,8 +109,13 @@ int main(int argc, char* argv[]){
 
                 if((strcmp("show", argv[1]) == 0)){       
                     if(argc != 4){
-                        printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
-                        exit(2);
+                        if (is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) == 1 && is_valid_file(argv[3]) == 1 && is_valid_flag(argv[4], &hexFlag, &phexFlag) == 1){
+                            snprintf(fileName, 256, "%s", argv[3]);
+                        }
+                        else{
+                            printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
+                            exit(2);
+                        }
                     }
                     else{
                         if(is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) != 1){

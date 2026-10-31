@@ -7,7 +7,7 @@
 
 void print_usage(); // called when --help, -h or metastrip alone is written
 int is_valid_subcommand_target(char*, int*, int*);
-int is_valid_file(char* filename);
+int is_valid_file(char*, int);
 void check_dublicates(int*); // to check if dublicates in the command exist or not
 void print_payload(FILE*, int, char, int*, int, int, int);
 void metastrip_show(FILE*, int*, int);
@@ -72,6 +72,7 @@ int main(int argc, char* argv[]){
     else{
         // checking if all the subcommands and flags are valid or not
         if((strcmp("show", argv[1]) == 0 ) || (strcmp("strip", argv[1]) == 0)){ // checking if valid subcommands
+            // printf("argc: %d\n", argc);
             if (argc == 3){
                 if (is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) == 1){
                     printf("metastrip: no File Provided\n\n");
@@ -107,9 +108,13 @@ int main(int argc, char* argv[]){
                 int argNum = 2; // starting after subcommands
                 int argTotal = argc;
 
-                if((strcmp("show", argv[1]) == 0)){       
+                if((strcmp("show", argv[1]) == 0)){  
+                    if (argc > 5){
+                        printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
+                        exit(2);
+                    }     
                     if(argc != 4){
-                        if (is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) == 1 && is_valid_file(argv[3]) == 1 && is_valid_flag(argv[4], &hexFlag, &phexFlag) == 1){
+                        if (is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) == 1 && is_valid_file(argv[3], 0) == 1 && is_valid_flag(argv[4], &hexFlag, &phexFlag) == 1){
                             snprintf(fileName, 256, "%s", argv[3]);
                         }
                         else{
@@ -119,8 +124,8 @@ int main(int argc, char* argv[]){
                     }
                     else{
                         if(is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) != 1){
-                            
-                            if (is_valid_file(argv[2]) == 1 && argc == 4){
+                            // printf("check\n");
+                            if (is_valid_file(argv[2], 1) == 1 && argc == 4){
                                 snprintf(fileName, 256, "%s", argv[2]);
 
                                 if(is_valid_flag(argv[3], &hexFlag, &phexFlag) != 1){
@@ -129,14 +134,14 @@ int main(int argc, char* argv[]){
                                 }
                             }                            
                             else{
-                                printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
+                                printf("metastrip: wrong targets provided, please check 'metastrip --help'\n\n");
                                 exit(2);
                             }
                         }
                         else{
                             // printf("check flow\n");
 
-                            if((is_valid_file(argv[3]) == 1)){
+                            if((is_valid_file(argv[3], 0) == 1)){
                                 snprintf(fileName, 256, "%s", argv[3]); // after checking it is assigned to the main fileName
                             }
 
@@ -156,7 +161,7 @@ int main(int argc, char* argv[]){
                             printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
                             exit(2);
                         }
-                        if(is_valid_file(argv[3]) == 1){
+                        if(is_valid_file(argv[3], 0) == 1){
                             snprintf(fileName, 256, "%s", argv[3]); // after checking it is assigned to the main fileName
                             generate_output_filename(fileName, output_filename, sizeof(output_filename));
                         }
@@ -169,7 +174,7 @@ int main(int argc, char* argv[]){
                         // printf("test\n");
                         is_valid_subcommand_target("all", valid_targets, &is_all_used); // for this condition it is assumed that all is passed as target
 
-                        if(is_valid_file(argv[2]) == 1){
+                        if(is_valid_file(argv[2], 0) == 1){
                             snprintf(fileName, 256, "%s", argv[2]); // after checking it is assigned to the main fileName
                         }
                         else{
@@ -198,7 +203,7 @@ int main(int argc, char* argv[]){
                             printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
                             exit(2);
                         }
-                        if(is_valid_file(argv[3]) == 1){
+                        if(is_valid_file(argv[3], 0) == 1){
                             snprintf(fileName, 256, "%s", argv[3]); // after checking it is assigned to the main fileName
                         }
                         else{
@@ -1401,19 +1406,29 @@ int is_valid_subcommand_target(char* target, int* target_list, int* is_all_avail
     return 1;
 }
 
-int is_valid_file(char* filename){
+int is_valid_file(char* filename, int flag){
+
+    /*
+    flag is added later as i didn't think this through it used in many places with combination with other function that's
+    why flag is used here as a new parameter if it's 0 then the function will retain as it was intended and exit the code however
+    if 1 is passed then it will return -1. require -1 to be returned as to fix a bug. [FUTURE FIX - NOT VERY IMPORTANT]
+    */
 
     FILE* file = fopen(filename, "r");
 
     if(file == NULL){
-        printf("!! File Does Not Exist !!\n\n");
-        exit(1);
+        if (flag == 0){
+            printf("!! File Does Not Exist !!\n\n");
+            exit(2);
+        }
+        else if (flag == 1)
+            return -1;
     }
     fclose(file);
 
     return 1;
 }
-
+ 
 int is_valid_flag(char* flag, int* hex_flag, int* phex_flag){
     /*
         if flag == --hex then it checks for phex_flag and hex_flag to 0, that means they haven't been used till now

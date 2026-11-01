@@ -115,12 +115,26 @@ int main(int argc, char* argv[]){
                         exit(2);
                     }     
                     if(argc != 4){
-                        if (is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) == 1 && is_valid_file(argv[3], 0) == 1 && is_valid_flag(argv[4], &hexFlag, &phexFlag) == 1){
+                        if (is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) == 1 && is_valid_file(argv[3], 1) == 1 && is_valid_flag(argv[4], &hexFlag, &phexFlag) == 1){
                             snprintf(fileName, 256, "%s", argv[3]);
                         }
                         else{
-                            printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
-                            exit(2);
+                            // had to use is_valid_file and is_valid_flag again here cus without it was causing a bug for: metastrip show exif notreal.jpg --hex
+                            // wrong message was printed
+                            if (is_valid_file(argv[3], 1) == 1){
+                                printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
+                                exit(2);
+                            }
+                            else{
+                                if(is_valid_flag(argv[3], &hexFlag, &phexFlag) == 1){
+                                    printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
+                                    exit(2);
+                                }
+                                else{
+                                    printf("!! File Does Not Exist !!\n\n");
+                                    exit(2);
+                                }
+                            }
                         }
                     }
                     else{

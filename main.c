@@ -9,7 +9,7 @@ void print_usage(); // called when --help, -h or metastrip alone is written
 int is_valid_subcommand_target(char*, int*, int*);
 int is_valid_file(char*, int);
 void check_dublicates(int*); // to check if dublicates in the command exist or not
-void print_payload(FILE*, int, char, int*, int, int, int);
+void print_payload(FILE*, int, char, int*, int, int, int, int*, int*);
 void metastrip_show(FILE*, int*, int, int*, int*);
 void metastrip_strip(FILE*, char*, int*, int);
 void generate_output_filename(char*, char*, int);
@@ -961,7 +961,7 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used, int* hex_fl
                         valid_targets[20] = -1;
 
                     // printf("check\n"); 
-                    printf("hex_flag: %d, phex_flag: %d\n", *hex_flag, *phex_flag);
+                    // printf("hex_flag: %d, phex_flag: %d\n", *hex_flag, *phex_flag);
                     if(*hex_flag == 0 && *phex_flag == 0){
                         // printf("check\n");
                         while(payload_length > 0){
@@ -990,13 +990,13 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used, int* hex_fl
 
                 // else if are from app0 - app15
                 else if((byte1 == 0xFF && byte2 == 0xE0) && valid_targets[0] == 1) // app0
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 0, byte2); 
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 0, byte2, hex_flag, phex_flag); 
 
 
                 else if((byte1 == 0xFF && byte2 == 0xE1) && (valid_targets[1] == 1 || valid_targets[1] == -1 || valid_targets[2] == 1 || valid_targets[3] == 1)){ // app1
                     // printf("check");
                     if (valid_targets[1] == 1 || valid_targets[1] == -1){
-                        print_payload(file, length, read_char, valid_targets, is_all_used, 1, byte2); 
+                        print_payload(file, length, read_char, valid_targets, is_all_used, 1, byte2, hex_flag, phex_flag); 
                         valid_targets[1] = -1;
                         if(is_all_used == 0){  // if app1 called with exif and xmp then it ignores xmp and exif (anyone who is reading this wishes to print app1 along with xmp and exif write can move this condition below xmp's condition)
                             valid_targets[2] = -1;
@@ -1102,7 +1102,7 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used, int* hex_fl
 
                 else if((byte1 == 0xFF && byte2 == 0xE2) && (valid_targets[4] == 1 || valid_targets[5] == 1 || valid_targets[4] == -1 || valid_targets[5] == -1)){ // app2
                     if (valid_targets[4] == 1 || valid_targets[4] == -1){
-                        print_payload(file, length, read_char, valid_targets, is_all_used, 4, byte2);
+                        print_payload(file, length, read_char, valid_targets, is_all_used, 4, byte2, hex_flag, phex_flag);
 
                         if(is_all_used == 0)
                             valid_targets[5] = -1;
@@ -1158,38 +1158,38 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used, int* hex_fl
                 }
 
                 else if((byte1 == 0xFF && byte2 == 0xE3) && valid_targets[6] == 1) // app3
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 6, byte2);
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 6, byte2, hex_flag, phex_flag);
 
                 else if((byte1 == 0xFF && byte2 == 0xE4) && valid_targets[7] == 1) // app4
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 7, byte2); 
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 7, byte2, hex_flag, phex_flag); 
 
                 else if((byte1 == 0xFF && byte2 == 0xE5) && valid_targets[8] == 1) // app5
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 8, byte2);
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 8, byte2, hex_flag, phex_flag);
 
                 else if((byte1 == 0xFF && byte2 == 0xE6) && valid_targets[9] == 1) // app6
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 9, byte2);
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 9, byte2, hex_flag, phex_flag);
                     
                 else if((byte1 == 0xFF && byte2 == 0xE7) && valid_targets[10] == 1) // app7
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 10, byte2);
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 10, byte2, hex_flag, phex_flag);
 
                 else if((byte1 == 0xFF && byte2 == 0xE8) && valid_targets[11] == 1) // app8
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 11, byte2);
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 11, byte2, hex_flag, phex_flag);
 
                 else if((byte1 == 0xFF && byte2 == 0xE9) && valid_targets[12] == 1) // app9
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 12, byte2);  
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 12, byte2, hex_flag, phex_flag);  
 
                 else if((byte1 == 0xFF && byte2 == 0xEA) && valid_targets[13] == 1) // app10
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 13, byte2);  
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 13, byte2, hex_flag, phex_flag);  
 
                 else if((byte1 == 0xFF && byte2 == 0xEB) && valid_targets[14] == 1) // app11
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 14, byte2);  
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 14, byte2, hex_flag, phex_flag);  
 
                 else if((byte1 == 0xFF && byte2 == 0xEC) && valid_targets[15] == 1) // app12
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 15, byte2); 
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 15, byte2, hex_flag, phex_flag); 
 
                 else if((byte1 == 0xFF && byte2 == 0xED) && (valid_targets[16] == 1 || valid_targets[17] == 1 || valid_targets[16] == -1 || valid_targets[17] == -1)){ // app13
                     if (valid_targets[16] == 1 || valid_targets[16] == -1){
-                        print_payload(file, length, read_char, valid_targets, is_all_used, 16, byte2);
+                        print_payload(file, length, read_char, valid_targets, is_all_used, 16, byte2, hex_flag, phex_flag);
 
                         if(is_all_used == 0)
                             valid_targets[17] = -1;
@@ -1243,10 +1243,10 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used, int* hex_fl
                 }
 
                 else if((byte1 == 0xFF && byte2 == 0xEE) && valid_targets[18] == 1) // app14
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 18, byte2); 
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 18, byte2, hex_flag, phex_flag); 
              
                 else if((byte1 == 0xFF && byte2 == 0xEF) && valid_targets[19] == 1) // app15
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 19, byte2);  
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 19, byte2, hex_flag, phex_flag);  
                                
                 else
                     fseek(file, length-2, SEEK_CUR);
@@ -1593,7 +1593,7 @@ void check_dublicates(int* target_list){
     }
 }
 
-void print_payload(FILE* file, int length, char read_char, int* target_list, int is_all_used, int target, int byte2){
+void print_payload(FILE* file, int length, char read_char, int* target_list, int is_all_used, int target, int byte2, int* hex_flag, int* phex_flag){
     
     int payload_length = length - 2;
     printf("APP%d\t%d bytes: ", (byte2-0xE0), payload_length);
@@ -1601,14 +1601,43 @@ void print_payload(FILE* file, int length, char read_char, int* target_list, int
     if(is_all_used == 0)
         target_list[target] = -1;
 
-
-    int total_count = ((payload_length) < 32) ? (payload_length) : 32; // 32 bytes is a guardrail if the length of the bytes is less than 32 than printing till there
-    int count = total_count;
-    while(count > 0){
-        read_char = getc(file);
-        printf("%c", ((read_char >= 32 && read_char <= 126) ? read_char : '.')); // non printable character are printed as .
-        count--;
+    if(*hex_flag == 0 && *phex_flag == 0){
+        int total_count = ((payload_length) < 32) ? (payload_length) : 32; // 32 bytes is a guardrail if the length of the bytes is less than 32 than printing till there
+        int count = total_count;
+        while(count > 0){
+            read_char = getc(file);
+            printf("%c", ((read_char >= 32 && read_char <= 126) ? read_char : '.')); // non printable character are printed as .
+            count--;
+        }
+        fseek(file, payload_length-(total_count), SEEK_CUR);
     }
-    fseek(file, payload_length-(total_count), SEEK_CUR);
+    else if(*hex_flag == 1){
+        int total_count = payload_length; // hex dump prints all in hexadecimal
+        int count = total_count;
+        printf("\n");
+        int byte1;
+        int byte2;
+        while(count > 0){
+            byte1 = getc(file);
+            byte2 = getc(file);
+            printf("%X%X ", byte1, byte2); // non printable character are printed as .
+            count -= 2;
+        }
+        printf("\n");
+        // fseek(file, payload_length-(total_count), SEEK_CUR);
+    }
+    else if(*phex_flag == 1){
+        int total_count = payload_length; // hex dump prints all
+        int count = total_count;
+        printf("\n");
+        while(count > 0){
+            read_char = getc(file);
+            printf("%c", ((read_char >= 32 && read_char <= 126) ? read_char : '.')); // non printable character are printed as .
+            count--;
+        }
+        printf("\n");
+        // fseek(file, payload_length-(total_count), SEEK_CUR);
+    }
     printf("\n");
+
 }

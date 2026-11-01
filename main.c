@@ -245,7 +245,11 @@ int main(int argc, char* argv[]){
                             exit(2);
                         }
 
-                        if(((strcmp(argv[3], "-o") == 0) )|| (strcmp(argv[3], "--output") == 0)){
+                        if(((strcmp(argv[3], "-o") == 0) ) || (strcmp(argv[3], "--output") == 0)){
+                            if(strcmp(argv[4], "-o") == 0 || strcmp(argv[4], "--output") == 0){
+                                printf("'%s' cannot be used as an output filename.\n\n", argv[4]);
+                                exit(2);
+                            }
                             if(check_output_file_exist(argv[4], argv[2], output_filename) != 1){
                                 printf("!! The Output File Provided, Overwriting any existing file is forbidden !!");
                                 exit(1);
@@ -275,6 +279,10 @@ int main(int argc, char* argv[]){
                         }
 
                         if(((strcmp(argv[4], "-o") == 0) )|| (strcmp(argv[4], "--output") == 0)){
+                            if(strcmp(argv[5], "-o") == 0 || strcmp(argv[5], "--output") == 0){
+                                printf("'%s' cannot be used as an output filename.\n\n", argv[5]);
+                                exit(2);
+                            }
                             if(check_output_file_exist(argv[5], argv[3], output_filename) != 1){
                                 printf("!! The Output File Provided, Overwriting any existing file is forbidden !!");
                                 exit(1);

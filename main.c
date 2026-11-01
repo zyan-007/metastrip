@@ -59,7 +59,7 @@ int main(int argc, char* argv[]){
             printf("'-v' or '--version' does not take value.\n\n");
             exit(2);
         }
-        printf("Metastrip version 1.0.0\n");
+        printf("Metastrip version 1.1.0\n");
         exit(0);
     }
     else if((strcmp(argv[1], "-h") == 0)  || (strcmp(argv[1], "--help") == 0)){

@@ -972,9 +972,10 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used, int* hex_fl
                     }
                     else if (*hex_flag == 1){
                         // printf("check\n");
+                            int hex_byte;
                             while(payload_length > 0){
-                            read_char = getc(file);
-                            printf("%c", read_char); // non printable character are printed as .
+                            hex_byte = getc(file);
+                            printf("%02X ", hex_byte); // non printable character are printed as .
                             payload_length--;
                         }
                     }

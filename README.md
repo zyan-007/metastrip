@@ -1,6 +1,6 @@
 # metastrip
 
-![version](https://img.shields.io/badge/version-1.0.0-brightgreen)
+![version](https://img.shields.io/badge/version-1.1.0-brightgreen)
 ![language](https://img.shields.io/badge/language-C-blue)
 ![license](https://img.shields.io/badge/license-MIT-lightgrey)
 ![platform](https://img.shields.io/badge/platform-JPEG%20only-orange)
@@ -27,6 +27,7 @@
 - **Strip** metadata out entirely — the whole file, or just the target(s) you choose — and write the result to a new file, never touching your original
 - Target segments either by **JPEG marker number** (`app0` … `app15`, `com`) or by **content identifier** (`exif`, `xmp`, `icc`, `iptc`) — metastrip reads the actual payload signature to tell apart, for example, the two different things that can live inside an `APP1` segment (EXIF vs. XMP)
 - Detect **trailing data** appended after the end of the actual image stream
+- **Dump a segment's full data** with `--hex` (hexadecimal bytes) or `--phex` (printable text) instead of the short preview `show` gives by default
 - Combine multiple targets in a single command (`app0,com,exif`)
 - Input validation that catches invalid targets, duplicate targets, and malformed combinations *before* ever opening your file
 - **Automatic, collision-free output naming** when stripping — or pin down an exact output path yourself with `-o`/`--output`
@@ -133,6 +134,8 @@ Once set up, you can run `metastrip <command>` from any directory, on any file, 
 ```
 metastrip show <file>
 metastrip show <target> <file>
+metastrip show <file> --hex|--phex
+metastrip show <target> <file> --hex|--phex
 metastrip strip <file>
 metastrip strip <target> <file>
 metastrip strip <file> -o|--output <output-file>
@@ -143,6 +146,7 @@ metastrip -v | --version
 
 - `metastrip show <file>` — shows **all** metadata segments found in the file (equivalent to explicitly passing `all` as the target)
 - `metastrip show <target> <file>` — shows only the segment(s) matching `<target>`
+- `metastrip show ... --hex` / `--phex` — dumps the **full** data of the selected segment(s); see [Dumping segment data](#dumping-segment-data---hex-and---phex)
 - `metastrip strip <file>` — writes a copy of the file with **all** metadata removed (equivalent to `strip all <file>`)
 - `metastrip strip <target> <file>` — writes a copy with only the matching segment(s) removed; everything else is preserved
 - `metastrip strip ... -o <output-file>` / `--output <output-file>` — write the result to a specific path instead of an auto-generated one
@@ -151,7 +155,7 @@ metastrip -v | --version
 
 ### Targets
 
-| Target             | Matches                                                                 |
+| Target             | Matches                                                                  |
 |--------------------|--------------------------------------------------------------------------|
 | `all`              | Every segment in the file (cannot be combined with any other target)     |
 | `app0` … `app15`   | A specific APP marker segment, by its raw marker number                  |
@@ -192,6 +196,12 @@ metastrip show exif,xmp,icc photo.jpg
 # Redirect output to a file
 metastrip show exif photo.jpg > metadata.txt
 
+# Dump the full data of every segment as hex bytes
+metastrip show photo.jpg --hex
+
+# Dump the full data of two segments as printable text
+metastrip show app0,com photo.jpg --phex
+
 # Strip everything, let metastrip name the output file
 metastrip strip photo.jpg
 
@@ -207,6 +217,34 @@ metastrip strip photo.jpg -o clean.jpg
 # Strip a specific target with a custom output path
 metastrip strip exif photo.jpg --output clean.jpg
 ```
+
+---
+
+## Dumping segment data: `--hex` and `--phex`
+
+By default, `show` only previews a segment: each `APPn` segment prints its first 32 bytes, with anything non-printable shown as `.`. Add one of these flags to print the **whole** payload instead:
+
+| Flag      | Output                                                                                 |
+|-----------|----------------------------------------------------------------------------------------|
+| `--hex`   | Every byte as two hexadecimal digits, e.g. `45 78 69 66 00 00`                         |
+| `--phex`  | Every byte as text — printable characters as-is, everything else as `.`                |
+
+```
+$ metastrip show app0 photo.jpg --hex
+Segment	Payload-length
+APP0	14 bytes:
+4A 46 49 46 00 01 01 01 01 2C 01 2C 00 00
+```
+
+Rules:
+
+- The flag goes **last**, after the file name: `metastrip show app0,com photo.jpg --hex`
+- Only **one** flag per command — `--hex` and `--phex` cannot be combined, and neither can be repeated
+- There are no short forms; use the full `--hex` / `--phex`
+- Without a target, the flag applies to **every** segment (`metastrip show photo.jpg --hex` is the same as `show all photo.jpg --hex`)
+- Both flags are for `show` only — `strip` rejects them
+- The flags apply to `app0` … `app15` and `com`. The content-identified targets (`exif`, `xmp`, `icc`, `iptc`) ignore them: those are saved to a text file (`exif_save.txt`, `xmp_save.txt`, `icc_save.txt`, `iptc_save.txt`) containing printable characters only. To see the raw bytes of EXIF, XMP, ICC or IPTC data, dump the marker that holds them instead (`app1`, `app2` or `app13`)
+- Because `--hex` prints hexadecimal digits, the output is safe to view in a terminal or redirect to a file even when the data contains control characters
 
 ---
 
@@ -247,7 +285,7 @@ At that point, delete some old `stripped_*` files or pass `-o`/`--output` with a
 ## Current limitations
 
 - **JPEG files only.** metastrip currently only understands the JPEG file structure (`FF D8` header, `FFxx` marker segments). Other image formats (PNG, TIFF, HEIC, etc.) are not supported.
-- EXIF, XMP, ICC, and IPTC data shown by `show` are displayed as **raw payload bytes** (printable characters shown as-is, everything else shown as `.`) — metastrip does not yet decode the internal structure of EXIF (its TIFF/IFD tag tree) or parse XML from XMP into individual fields.
+- EXIF, XMP, ICC, and IPTC data shown by `show` are saved as **raw payload bytes** in a text file (printable characters as-is, everything else as `.`) — metastrip does not yet decode the internal structure of EXIF (its TIFF/IFD tag tree) or parse XML from XMP into individual fields.
 - `strip` removes whole metadata segments; it does not selectively edit or redact fields within a segment.
 
 ---

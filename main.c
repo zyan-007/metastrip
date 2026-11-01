@@ -79,7 +79,7 @@ int main(int argc, char* argv[]){
                     exit(2);
                 }
                 else if(is_valid_flag(argv[2], &hexFlag, &phexFlag) == 1){
-                    printf("Flags cannot be used without file. See metastrip -h.\n\n");
+                    printf("metastrip: flags cannot be used without file. See metastrip -h.\n\n");
                     exit(2);
                 }
                 else{
@@ -109,6 +109,7 @@ int main(int argc, char* argv[]){
                 int argTotal = argc;
 
                 if((strcmp("show", argv[1]) == 0)){  
+                    // printf("argc: %d\n", argc);
                     if (argc > 5){
                         printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
                         exit(2);
@@ -141,8 +142,18 @@ int main(int argc, char* argv[]){
                         else{
                             // printf("check flow\n");
 
-                            if((is_valid_file(argv[3], 0) == 1)){
+                            if((is_valid_file(argv[3], 1) == 1)){
                                 snprintf(fileName, 256, "%s", argv[3]); // after checking it is assigned to the main fileName
+                            }
+                            else{
+                                if(is_valid_flag(argv[3], &hexFlag, &phexFlag) == 1) {
+                                    printf("metastrip: flags cannot be used without file. See metastrip -h.\n\n");
+                                    exit(2);
+                                }
+                                else{
+                                    printf("!! File Does Not Exist !!\n\n");
+                                    exit(2);
+                                }
                             }
 
                             // comment this out later only for testing purpose

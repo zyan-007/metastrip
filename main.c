@@ -101,6 +101,7 @@ int main(int argc, char* argv[]){
                         snprintf(fileName, 256, "%s", argv[2]); // after checking it is assigned to the main fileName                    }
 
                         if(strcmp("strip", argv[1]) == 0){
+                            // printf("check\n");
                             generate_output_filename(fileName, output_filename, sizeof(output_filename));
                             // printf("output file: %s\n", output_filename); // testing purpose
                         }
@@ -708,6 +709,20 @@ int check_output_file_exist(char* filename, char* input_file_name, char* final_o
     char extension_name_input[20];
     char* input_extension = strrchr(input_file_name, '.'); // since input file name is already checked before coming here so we know it is safe and contains an extension
     
+    /*
+    disable the below one if you wish to use directory
+    this is written only because of one bug: metastrip strip test1.jpg -o dir/test2.jpg where dir does not exist causing false success
+    so therefore below one forces the user to only give outputfile names without mentioning directory names
+    */
+    int char_count = 0;
+    do{
+        if(filename[char_count] == '\\' || filename[char_count] == '/'){
+            printf("!! Output cannot include directories, please use only filename within current directory !!\n\n");
+            exit(2);
+        }
+        char_count++;
+    }while(filename[char_count] != '\0');
+
     // extracting the extension name form the input file
     int i = 0;
     while(*input_extension != '\0'){ // there will always be a null character at the end of the filename, assumed 

@@ -154,6 +154,11 @@ int main(int argc, char* argv[]){
                                     exit(2);
                                 }
                                 else{
+                                    if(is_valid_flag(argv[3], &hexFlag, &phexFlag) == 1 && is_valid_file(argv[2], 1) != 1){
+                                        printf("!! File Does Not Exist !!\n\n");
+                                        exit(2);
+                                    }
+
                                     printf("metastrip: wrong targets provided, please check 'metastrip --help'\n\n");
                                     exit(2);
                                 }

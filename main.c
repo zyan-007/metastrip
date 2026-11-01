@@ -955,7 +955,6 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used, int* hex_fl
                 // com
                 if((byte1 == 0xFF && byte2 == 0xFE) && valid_targets[20] == 1){
                     payload_length = length - 2;
-                    printf("COM\t%d bytes: ", payload_length);
 
                     if (is_all_used == 0)
                         valid_targets[20] = -1;
@@ -964,6 +963,8 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used, int* hex_fl
                     // printf("hex_flag: %d, phex_flag: %d\n", *hex_flag, *phex_flag);
                     if(*hex_flag == 0 && *phex_flag == 0){
                         // printf("check\n");
+                        printf("COM\t%d bytes: ", payload_length);
+
                         while(payload_length > 0){
                             read_char = getc(file);
                             printf("%c", ((read_char >= 32 && read_char <= 126) ? read_char : '.')); // non printable character are printed as .
@@ -972,14 +973,19 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used, int* hex_fl
                     }
                     else if (*hex_flag == 1){
                         // printf("check\n");
-                            int hex_byte;
-                            while(payload_length > 0){
-                            hex_byte = getc(file);
-                            printf("%02X ", hex_byte); // non printable character are printed as .
-                            payload_length--;
+                        printf("COM\t%d bytes:\n", payload_length);
+
+                        int hex_byte;
+                        while(payload_length > 0){
+                        hex_byte = getc(file);
+                        printf("%02X ", hex_byte); // non printable character are printed as .
+                        payload_length--;
                         }
                     }
                     else if (*phex_flag == 1){
+                        printf("COM\t%d bytes:\n", payload_length);
+
+
                         while(payload_length > 0){
                         read_char = getc(file);
                         printf("%c", ((read_char >= 32 && read_char <= 126) ? read_char : '.')); // non printable character are printed as .

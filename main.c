@@ -73,13 +73,23 @@ int main(int argc, char* argv[]){
         // checking if all the subcommands and flags are valid or not
         if((strcmp("show", argv[1]) == 0 ) || (strcmp("strip", argv[1]) == 0)){ // checking if valid subcommands
             // printf("argc: %d\n", argc);
+
+            // making sure strip is not used with --hex/--phex
+            if (strcmp("strip", argv[1]) == 0){            
+                for(int i = 0; i < argc; ++i){
+                    if(is_valid_flag(argv[i], &hexFlag, &phexFlag) == 1){
+                        printf("metastrip: flag cannot be used with strip, please check 'metastrip --help'\n\n");
+                        exit(2);
+                    }
+                }
+            }
             if (argc == 3){
                 if (is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) == 1){
                     printf("metastrip: no File Provided\n\n");
                     exit(2);
                 }
                 else if(is_valid_flag(argv[2], &hexFlag, &phexFlag) == 1){
-                    printf("metastrip: flags cannot be used without file. See metastrip -h.\n\n");
+                    printf("metastrip: flags cannot be used without file, please check 'metastrip --help'\n\n");
                     exit(2);
                 }
                 else{
@@ -191,6 +201,15 @@ int main(int argc, char* argv[]){
                 }
                 else if((strcmp("strip", argv[1]) == 0)){
                     // printf("test\n");
+
+                    // checking if flag are used with strip or not, it is not allowed
+                    for(int i = 0; i < argc; ++i){
+                        if(is_valid_flag(argv[i], &hexFlag, &phexFlag) == 1){
+                            printf("metastrip: flags cannot be used with strip, please check 'metastrip --help'\n\n");
+                            exit(2);
+                        }
+                    }
+
                     if(argc == 4){
                     // printf("test\n");
                         if(is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) != 1){

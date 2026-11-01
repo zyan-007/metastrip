@@ -135,8 +135,14 @@ int main(int argc, char* argv[]){
                                 }
                             }                            
                             else{
-                                printf("metastrip: wrong targets provided, please check 'metastrip --help'\n\n");
-                                exit(2);
+                                if(is_valid_flag(argv[2], &hexFlag, &phexFlag) == 1){
+                                    printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
+                                    exit(2);
+                                }
+                                else{
+                                    printf("metastrip: wrong targets provided, please check 'metastrip --help'\n\n");
+                                    exit(2);
+                                }
                             }
                         }
                         else{

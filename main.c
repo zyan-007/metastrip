@@ -7,18 +7,21 @@
 
 void print_usage(); // called when --help, -h or metastrip alone is written
 int is_valid_subcommand_target(char*, int*, int*);
-int is_valid_file(char* filename);
+int is_valid_file(char*, int);
 void check_dublicates(int*); // to check if dublicates in the command exist or not
-void print_payload(FILE*, int, char, int*, int, int, int);
-void metastrip_show(FILE*, int*, int);
+void print_payload(FILE*, int, char, int*, int, int, int, int*, int*);
+void metastrip_show(FILE*, int*, int, int*, int*);
 void metastrip_strip(FILE*, char*, int*, int);
 void generate_output_filename(char*, char*, int);
 int check_output_file_exist(char*, char*, char*);
+int is_valid_flag(char*, int*, int*);
 
 int main(int argc, char* argv[]){
     FILE *file;
     char fileName[256]; // file name gets assigned as per the command
     char output_filename[500]; // used with strip where the copy is stored
+    int hexFlag = 0; // 0 means --hex is not used, if 1 then it means it is used
+    int phexFlag = 0; // 0 means --phex is not used, if 1 then it means it is used
 
     int is_all_used = 0; // this will be used during printing so that missing commands are not printed
     /*
@@ -56,7 +59,7 @@ int main(int argc, char* argv[]){
             printf("'-v' or '--version' does not take value.\n\n");
             exit(2);
         }
-        printf("Metastrip version 1.0.0\n");
+        printf("Metastrip version 1.1.0\n");
         exit(0);
     }
     else if((strcmp(argv[1], "-h") == 0)  || (strcmp(argv[1], "--help") == 0)){
@@ -69,9 +72,26 @@ int main(int argc, char* argv[]){
     else{
         // checking if all the subcommands and flags are valid or not
         if((strcmp("show", argv[1]) == 0 ) || (strcmp("strip", argv[1]) == 0)){ // checking if valid subcommands
+            // printf("argc: %d\n", argc);
+
+            // making sure strip is not used with --hex/--phex
+            if (strcmp("strip", argv[1]) == 0){  
+                // printf("check\n");          
+                for(int i = 0; i < argc; ++i){
+                    if(is_valid_flag(argv[i], &hexFlag, &phexFlag) == 1){
+                        printf("metastrip: flag cannot be used with strip, please check 'metastrip --help'\n\n");
+                        exit(2);
+                    }
+                }
+            }
             if (argc == 3){
+                // printf("check\n");
                 if (is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) == 1){
                     printf("metastrip: no File Provided\n\n");
+                    exit(2);
+                }
+                else if(is_valid_flag(argv[2], &hexFlag, &phexFlag) == 1){
+                    printf("metastrip: flags cannot be used without file, please check 'metastrip --help'\n\n");
                     exit(2);
                 }
                 else{
@@ -83,6 +103,7 @@ int main(int argc, char* argv[]){
                         snprintf(fileName, 256, "%s", argv[2]); // after checking it is assigned to the main fileName                    }
 
                         if(strcmp("strip", argv[1]) == 0){
+                            // printf("check\n");
                             generate_output_filename(fileName, output_filename, sizeof(output_filename));
                             // printf("output file: %s\n", output_filename); // testing purpose
                         }
@@ -100,21 +121,95 @@ int main(int argc, char* argv[]){
                 int argNum = 2; // starting after subcommands
                 int argTotal = argc;
 
-                if((strcmp("show", argv[1]) == 0)){       
-                    if(argc != 4){
+                // printf("check\n");
+                if((strcmp("show", argv[1]) == 0)){  
+                    // printf("argc: %d\n", argc);
+                    if (argc > 5){
                         printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
                         exit(2);
+                    }     
+                    if(argc != 4){
+                        // printf("check\n");
+                        if (is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) == 1 && is_valid_file(argv[3], 1) == 1 && is_valid_flag(argv[4], &hexFlag, &phexFlag) == 1){
+                            snprintf(fileName, 256, "%s", argv[3]);
+                        }
+                        else{
+                            // had to use is_valid_file and is_valid_flag again here cus without it was causing a bug for: metastrip show exif notreal.jpg --hex
+                            // wrong message was printed
+                            if (is_valid_file(argv[3], 1) == 1){
+                                printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
+                                exit(2);
+                            }
+                            else{
+                                if(is_valid_flag(argv[3], &hexFlag, &phexFlag) == 1){
+                                    printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
+                                    exit(2);
+                                }
+                                else{
+                                    // printf("check\n");
+                                    if(strcmp("--hex", argv[2]) == 0 || strcmp("--phex", argv[2]) == 0 || strcmp("--hex", argv[3]) == 0 || strcmp("--phex", argv[3]) == 0){
+                                        printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
+                                        exit(2);
+                                    }
+                                    else{
+                                        printf("!! File Does Not Exist !!\n\n");
+                                        exit(2);
+                                    }
+                                }
+                            }
+                        }
                     }
                     else{
+                        // printf("check\n");
                         if(is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) != 1){
-                            printf("metastrip: wrong targets provided, please check 'metastrip --help'\n\n");
-                            exit(2);
+                            // printf("checking\n");
+                            if (is_valid_file(argv[2], 1) == 1 && argc == 4){
+                                
+                                if(is_valid_flag(argv[3], &hexFlag, &phexFlag) != 1){
+                                    printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
+                                    exit(2);
+                                }
+
+                                snprintf(fileName, 256, "%s", argv[2]);
+                                // this case triggers when metastrip show test.jpg --hex
+                                // therfore all has to be active
+
+                                for(int i = 0; i < JPEG_VALID_TARGET_COUNT; ++i)
+                                    valid_targets[i] = 1;
+                                is_all_used = 1;
+                                // printf("check flow\n");
+                            }                            
+                            else{
+                                if(is_valid_flag(argv[2], &hexFlag, &phexFlag) == 1){
+                                    printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
+                                    exit(2);
+                                }
+                                else{
+                                    if(is_valid_flag(argv[3], &hexFlag, &phexFlag) == 1 && is_valid_file(argv[2], 1) != 1){
+                                        printf("!! File Does Not Exist !!\n\n");
+                                        exit(2);
+                                    }
+
+                                    printf("metastrip: wrong targets provided, please check 'metastrip --help'\n\n");
+                                    exit(2);
+                                }
+                            }
                         }
                         else{
                             // printf("check flow\n");
 
-                            if((is_valid_file(argv[3]) == 1)){
+                            if((is_valid_file(argv[3], 1) == 1)){
                                 snprintf(fileName, 256, "%s", argv[3]); // after checking it is assigned to the main fileName
+                            }
+                            else{
+                                if(is_valid_flag(argv[3], &hexFlag, &phexFlag) == 1) {
+                                    printf("metastrip: flags cannot be used without file. See metastrip -h.\n\n");
+                                    exit(2);
+                                }
+                                else{
+                                    printf("!! File Does Not Exist !!\n\n");
+                                    exit(2);
+                                }
                             }
 
                             // comment this out later only for testing purpose
@@ -127,13 +222,22 @@ int main(int argc, char* argv[]){
                 }
                 else if((strcmp("strip", argv[1]) == 0)){
                     // printf("test\n");
+
+                    // checking if flag are used with strip or not, it is not allowed
+                    for(int i = 0; i < argc; ++i){
+                        if(is_valid_flag(argv[i], &hexFlag, &phexFlag) == 1){
+                            printf("metastrip: flags cannot be used with strip, please check 'metastrip --help'\n\n");
+                            exit(2);
+                        }
+                    }
+
                     if(argc == 4){
                     // printf("test\n");
                         if(is_valid_subcommand_target(argv[2], valid_targets, &is_all_used) != 1){
                             printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
                             exit(2);
                         }
-                        if(is_valid_file(argv[3]) == 1){
+                        if(is_valid_file(argv[3], 0) == 1){
                             snprintf(fileName, 256, "%s", argv[3]); // after checking it is assigned to the main fileName
                             generate_output_filename(fileName, output_filename, sizeof(output_filename));
                         }
@@ -146,7 +250,7 @@ int main(int argc, char* argv[]){
                         // printf("test\n");
                         is_valid_subcommand_target("all", valid_targets, &is_all_used); // for this condition it is assumed that all is passed as target
 
-                        if(is_valid_file(argv[2]) == 1){
+                        if(is_valid_file(argv[2], 0) == 1){
                             snprintf(fileName, 256, "%s", argv[2]); // after checking it is assigned to the main fileName
                         }
                         else{
@@ -154,7 +258,11 @@ int main(int argc, char* argv[]){
                             exit(2);
                         }
 
-                        if(((strcmp(argv[3], "-o") == 0) )|| (strcmp(argv[3], "--output") == 0)){
+                        if(((strcmp(argv[3], "-o") == 0) ) || (strcmp(argv[3], "--output") == 0)){
+                            if(strcmp(argv[4], "-o") == 0 || strcmp(argv[4], "--output") == 0){
+                                printf("'%s' cannot be used as an output filename.\n\n", argv[4]);
+                                exit(2);
+                            }
                             if(check_output_file_exist(argv[4], argv[2], output_filename) != 1){
                                 printf("!! The Output File Provided, Overwriting any existing file is forbidden !!");
                                 exit(1);
@@ -175,7 +283,7 @@ int main(int argc, char* argv[]){
                             printf("metastrip: wrong usage, please check 'metastrip --help'\n\n");
                             exit(2);
                         }
-                        if(is_valid_file(argv[3]) == 1){
+                        if(is_valid_file(argv[3], 0) == 1){
                             snprintf(fileName, 256, "%s", argv[3]); // after checking it is assigned to the main fileName
                         }
                         else{
@@ -184,6 +292,10 @@ int main(int argc, char* argv[]){
                         }
 
                         if(((strcmp(argv[4], "-o") == 0) )|| (strcmp(argv[4], "--output") == 0)){
+                            if(strcmp(argv[5], "-o") == 0 || strcmp(argv[5], "--output") == 0){
+                                printf("'%s' cannot be used as an output filename.\n\n", argv[5]);
+                                exit(2);
+                            }
                             if(check_output_file_exist(argv[5], argv[3], output_filename) != 1){
                                 printf("!! The Output File Provided, Overwriting any existing file is forbidden !!");
                                 exit(1);
@@ -216,11 +328,13 @@ int main(int argc, char* argv[]){
     // file name input from the user
     // fgets(fileName, 256, stdin); // now sending file name from terminal itself no need to take input
     // fileName[strcspn(fileName, "\n")] = '\0';
+    // printf("check filename: %s\n", fileName);
     file = fopen(fileName, "rb");
 
     if(file != NULL){
         if (strcmp(argv[1], "show") == 0){
-            metastrip_show(file, valid_targets, is_all_used);
+            // printf("check\n");
+            metastrip_show(file, valid_targets, is_all_used, &hexFlag, &phexFlag);
         }
         else if(strcmp(argv[1], "strip") == 0){
             // printf("test -> strip");
@@ -609,6 +723,20 @@ int check_output_file_exist(char* filename, char* input_file_name, char* final_o
     char extension_name_input[20];
     char* input_extension = strrchr(input_file_name, '.'); // since input file name is already checked before coming here so we know it is safe and contains an extension
     
+    /*
+    disable the below one if you wish to use directory
+    this is written only because of one bug: metastrip strip test1.jpg -o dir/test2.jpg where dir does not exist causing false success
+    so therefore below one forces the user to only give outputfile names without mentioning directory names
+    */
+    int char_count = 0;
+    do{
+        if(filename[char_count] == '\\' || filename[char_count] == '/'){
+            printf("!! Output cannot include directories, please use only filename within current directory !!\n\n");
+            exit(2);
+        }
+        char_count++;
+    }while(filename[char_count] != '\0');
+
     // extracting the extension name form the input file
     int i = 0;
     while(*input_extension != '\0'){ // there will always be a null character at the end of the filename, assumed 
@@ -707,7 +835,7 @@ void generate_output_filename(char* input_filename, char* final_file, int output
     
 }
 
-void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
+void metastrip_show(FILE* file, int* valid_targets, int is_all_used, int* hex_flag, int* phex_flag){
         /*
             JPEG marker / target reference (keep copying here to save myself from asking again):
 
@@ -737,8 +865,12 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
             we find markers and print them
         */
 
+        // printf("check 1\n");
+
         int byte1 = getc(file); // storing first byte should be FF
         int byte2 = getc(file); // storing second byte should be D8
+
+        // printf("%X %X\n", byte1, byte2);
 
         // printf("Sements active: ");
         // for(int i = 0; i < 22; ++i)
@@ -749,6 +881,7 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
             printf("Segment\tPayload-length\n");
 
             while(1){
+                // printf("check\n");
                 byte1 = getc(file);
                 byte2 = getc(file);
 
@@ -822,30 +955,55 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                 // com
                 if((byte1 == 0xFF && byte2 == 0xFE) && valid_targets[20] == 1){
                     payload_length = length - 2;
-                    printf("COM\t%d bytes: ", payload_length);
 
                     if (is_all_used == 0)
                         valid_targets[20] = -1;
 
+                    // printf("check\n"); 
+                    // printf("hex_flag: %d, phex_flag: %d\n", *hex_flag, *phex_flag);
+                    if(*hex_flag == 0 && *phex_flag == 0){
+                        // printf("check\n");
+                        printf("COM\t%d bytes: ", payload_length);
 
-                    while(payload_length > 0){
+                        while(payload_length > 0){
+                            read_char = getc(file);
+                            printf("%c", ((read_char >= 32 && read_char <= 126) ? read_char : '.')); // non printable character are printed as .
+                            payload_length--;
+                        }
+                    }
+                    else if (*hex_flag == 1){
+                        // printf("check\n");
+                        printf("COM\t%d bytes:\n", payload_length);
+
+                        int hex_byte;
+                        while(payload_length > 0){
+                        hex_byte = getc(file);
+                        printf("%02X ", hex_byte); // non printable character are printed as .
+                        payload_length--;
+                        }
+                    }
+                    else if (*phex_flag == 1){
+                        printf("COM\t%d bytes:\n", payload_length);
+
+
+                        while(payload_length > 0){
                         read_char = getc(file);
                         printf("%c", ((read_char >= 32 && read_char <= 126) ? read_char : '.')); // non printable character are printed as .
                         payload_length--;
+                        }
                     }
-
                     printf("\n");
                 }
 
                 // else if are from app0 - app15
                 else if((byte1 == 0xFF && byte2 == 0xE0) && valid_targets[0] == 1) // app0
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 0, byte2); 
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 0, byte2, hex_flag, phex_flag); 
 
 
                 else if((byte1 == 0xFF && byte2 == 0xE1) && (valid_targets[1] == 1 || valid_targets[1] == -1 || valid_targets[2] == 1 || valid_targets[3] == 1)){ // app1
                     // printf("check");
                     if (valid_targets[1] == 1 || valid_targets[1] == -1){
-                        print_payload(file, length, read_char, valid_targets, is_all_used, 1, byte2); 
+                        print_payload(file, length, read_char, valid_targets, is_all_used, 1, byte2, hex_flag, phex_flag); 
                         valid_targets[1] = -1;
                         if(is_all_used == 0){  // if app1 called with exif and xmp then it ignores xmp and exif (anyone who is reading this wishes to print app1 along with xmp and exif write can move this condition below xmp's condition)
                             valid_targets[2] = -1;
@@ -854,7 +1012,7 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                         continue;
                     }
 
-                    if((valid_targets[2] == 1) && valid_targets[1] == 0 && is_all_used == 0){
+                    if ((valid_targets[2] == 1) && valid_targets[1] == 0 && is_all_used == 0){
 
                         long long payload_length = length - 2;
                         char iden_str[6]; // identifier string
@@ -951,7 +1109,7 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
 
                 else if((byte1 == 0xFF && byte2 == 0xE2) && (valid_targets[4] == 1 || valid_targets[5] == 1 || valid_targets[4] == -1 || valid_targets[5] == -1)){ // app2
                     if (valid_targets[4] == 1 || valid_targets[4] == -1){
-                        print_payload(file, length, read_char, valid_targets, is_all_used, 4, byte2);
+                        print_payload(file, length, read_char, valid_targets, is_all_used, 4, byte2, hex_flag, phex_flag);
 
                         if(is_all_used == 0)
                             valid_targets[5] = -1;
@@ -1007,38 +1165,38 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                 }
 
                 else if((byte1 == 0xFF && byte2 == 0xE3) && valid_targets[6] == 1) // app3
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 6, byte2);
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 6, byte2, hex_flag, phex_flag);
 
                 else if((byte1 == 0xFF && byte2 == 0xE4) && valid_targets[7] == 1) // app4
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 7, byte2); 
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 7, byte2, hex_flag, phex_flag); 
 
                 else if((byte1 == 0xFF && byte2 == 0xE5) && valid_targets[8] == 1) // app5
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 8, byte2);
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 8, byte2, hex_flag, phex_flag);
 
                 else if((byte1 == 0xFF && byte2 == 0xE6) && valid_targets[9] == 1) // app6
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 9, byte2);
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 9, byte2, hex_flag, phex_flag);
                     
                 else if((byte1 == 0xFF && byte2 == 0xE7) && valid_targets[10] == 1) // app7
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 10, byte2);
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 10, byte2, hex_flag, phex_flag);
 
                 else if((byte1 == 0xFF && byte2 == 0xE8) && valid_targets[11] == 1) // app8
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 11, byte2);
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 11, byte2, hex_flag, phex_flag);
 
                 else if((byte1 == 0xFF && byte2 == 0xE9) && valid_targets[12] == 1) // app9
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 12, byte2);  
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 12, byte2, hex_flag, phex_flag);  
 
                 else if((byte1 == 0xFF && byte2 == 0xEA) && valid_targets[13] == 1) // app10
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 13, byte2);  
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 13, byte2, hex_flag, phex_flag);  
 
                 else if((byte1 == 0xFF && byte2 == 0xEB) && valid_targets[14] == 1) // app11
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 14, byte2);  
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 14, byte2, hex_flag, phex_flag);  
 
                 else if((byte1 == 0xFF && byte2 == 0xEC) && valid_targets[15] == 1) // app12
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 15, byte2); 
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 15, byte2, hex_flag, phex_flag); 
 
                 else if((byte1 == 0xFF && byte2 == 0xED) && (valid_targets[16] == 1 || valid_targets[17] == 1 || valid_targets[16] == -1 || valid_targets[17] == -1)){ // app13
                     if (valid_targets[16] == 1 || valid_targets[16] == -1){
-                        print_payload(file, length, read_char, valid_targets, is_all_used, 16, byte2);
+                        print_payload(file, length, read_char, valid_targets, is_all_used, 16, byte2, hex_flag, phex_flag);
 
                         if(is_all_used == 0)
                             valid_targets[17] = -1;
@@ -1092,10 +1250,10 @@ void metastrip_show(FILE* file, int* valid_targets, int is_all_used){
                 }
 
                 else if((byte1 == 0xFF && byte2 == 0xEE) && valid_targets[18] == 1) // app14
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 18, byte2); 
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 18, byte2, hex_flag, phex_flag); 
              
                 else if((byte1 == 0xFF && byte2 == 0xEF) && valid_targets[19] == 1) // app15
-                    print_payload(file, length, read_char, valid_targets, is_all_used, 19, byte2);  
+                    print_payload(file, length, read_char, valid_targets, is_all_used, 19, byte2, hex_flag, phex_flag);  
                                
                 else
                     fseek(file, length-2, SEEK_CUR);
@@ -1227,10 +1385,19 @@ void print_usage(){
         "  -v, --version           Show the installed version\n"
         "  -o, --output <file>     Output filename (strip only)\n"
         "                          Default: stripped_<name>.jpg\n"
-        "                          Refuses to overwrite an existing file\n\n"
+        "                          Refuses to overwrite an existing file\n"
+        "  --hex                   Dump the full data of the selected segment as hex bytes\n"
+        "                          (show only)\n"
+        "  --phex                  Dump the full data of the selected segment as text\n"
+        "                          (show only). Non-printable bytes are shown as '.'\n"
+        "                          --hex and --phex cannot be used together\n"
+        "                          Both apply to app0 ... app15 and com only. exif, xmp,\n"
+        "                          icc and iptc ignore them and are saved to a text file\n\n"
         "Examples:\n"
         "  metastrip show photo.jpg\n"
         "  metastrip show exif photo.jpg\n"
+        "  metastrip show app0,app1,app2 photo.jpg --hex\n"
+        "  metastrip show photo.jpg --phex\n"
         "  metastrip strip exif photo.jpg\n"
         "  metastrip strip photo.jpg -o clean.jpg\n"
         "  metastrip strip all photo.jpg -o clean.jpg\n\n"
@@ -1372,17 +1539,58 @@ int is_valid_subcommand_target(char* target, int* target_list, int* is_all_avail
     return 1;
 }
 
-int is_valid_file(char* filename){
+int is_valid_file(char* filename, int flag){
+
+    /*
+    flag is added later as i didn't think this through it used in many places with combination with other function that's
+    why flag is used here as a new parameter if it's 0 then the function will retain as it was intended and exit the code however
+    if 1 is passed then it will return -1. require -1 to be returned as to fix a bug. [FUTURE FIX - NOT VERY IMPORTANT]
+    */
 
     FILE* file = fopen(filename, "r");
 
     if(file == NULL){
-        printf("!! File Does Not Exist !!\n\n");
-        exit(1);
+        if (flag == 0){
+            printf("!! File Does Not Exist !!\n\n");
+            exit(2);
+        }
+        else if (flag == 1)
+            return -1;
     }
     fclose(file);
 
     return 1;
+}
+ 
+int is_valid_flag(char* flag, int* hex_flag, int* phex_flag){
+    /*
+        if flag == --hex then it checks for phex_flag and hex_flag to 0, that means they haven't been used till now
+        this prevents the dublication problem like --hex --hex or --hex --phex being called by the user
+        same check for flag == --phex
+        if all's good then the function returns 1 else it exits here only
+    */
+    if (strcmp(flag, "--hex") == 0){
+        if (*hex_flag == 0 && *phex_flag == 0)
+            *hex_flag = 1;
+        else{
+            printf("metastrip: Wrong usage of flags, See 'metastrip --help'.\n\n");
+            exit(2);
+        }
+
+        return 1;
+    }
+    else if(strcmp(flag, "--phex") == 0){
+        if(*hex_flag == 0 && *phex_flag == 0)
+            *phex_flag = 1;
+        else{
+            printf("metastrip: Wrong usage of flags, See 'metastrip --help'.\n\n");
+            exit(2);
+        }
+        
+        return 1;
+    }
+
+    return 0;
 }
 
 void check_dublicates(int* target_list){
@@ -1395,7 +1603,7 @@ void check_dublicates(int* target_list){
     }
 }
 
-void print_payload(FILE* file, int length, char read_char, int* target_list, int is_all_used, int target, int byte2){
+void print_payload(FILE* file, int length, char read_char, int* target_list, int is_all_used, int target, int byte2, int* hex_flag, int* phex_flag){
     
     int payload_length = length - 2;
     printf("APP%d\t%d bytes: ", (byte2-0xE0), payload_length);
@@ -1403,14 +1611,42 @@ void print_payload(FILE* file, int length, char read_char, int* target_list, int
     if(is_all_used == 0)
         target_list[target] = -1;
 
-
-    int total_count = ((payload_length) < 32) ? (payload_length) : 32; // 32 bytes is a guardrail if the length of the bytes is less than 32 than printing till there
-    int count = total_count;
-    while(count > 0){
-        read_char = getc(file);
-        printf("%c", ((read_char >= 32 && read_char <= 126) ? read_char : '.')); // non printable character are printed as .
-        count--;
+    if(*hex_flag == 0 && *phex_flag == 0){
+        int total_count = ((payload_length) < 32) ? (payload_length) : 32; // 32 bytes is a guardrail if the length of the bytes is less than 32 than printing till there
+        int count = total_count;
+        while(count > 0){
+            read_char = getc(file);
+            printf("%c", ((read_char >= 32 && read_char <= 126) ? read_char : '.')); // non printable character are printed as .
+            count--;
+        }
+        fseek(file, payload_length-(total_count), SEEK_CUR);
     }
-    fseek(file, payload_length-(total_count), SEEK_CUR);
+    else if(*hex_flag == 1){
+        int total_count = payload_length; // hex dump prints all in hexadecimal
+        int count = total_count;
+        printf("\n");
+        int byte1;
+        // int byte2;
+        while(count > 0){
+            byte1 = getc(file);
+            printf("%02X ", byte1); // non printable character are printed as .
+            count--;
+        }
+        printf("\n");
+        // fseek(file, payload_length-(total_count), SEEK_CUR);
+    }
+    else if(*phex_flag == 1){
+        int total_count = payload_length; // hex dump prints all
+        int count = total_count;
+        printf("\n");
+        while(count > 0){
+            read_char = getc(file);
+            printf("%c", ((read_char >= 32 && read_char <= 126) ? read_char : '.')); // non printable character are printed as .
+            count--;
+        }
+        printf("\n");
+        // fseek(file, payload_length-(total_count), SEEK_CUR);
+    }
     printf("\n");
+
 }

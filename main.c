@@ -1619,7 +1619,7 @@ void print_payload(FILE* file, int length, char read_char, int* target_list, int
         // int byte2;
         while(count > 0){
             byte1 = getc(file);
-            printf("%X ", byte1); // non printable character are printed as .
+            printf("%02X ", byte1); // non printable character are printed as .
             count--;
         }
         printf("\n");

@@ -1616,12 +1616,11 @@ void print_payload(FILE* file, int length, char read_char, int* target_list, int
         int count = total_count;
         printf("\n");
         int byte1;
-        int byte2;
+        // int byte2;
         while(count > 0){
             byte1 = getc(file);
-            byte2 = getc(file);
-            printf("%X%X ", byte1, byte2); // non printable character are printed as .
-            count -= 2;
+            printf("%X ", byte1); // non printable character are printed as .
+            count--;
         }
         printf("\n");
         // fseek(file, payload_length-(total_count), SEEK_CUR);
